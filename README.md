@@ -70,6 +70,30 @@ macOS / Linux：
 
 注意：PyInstaller 不支持交叉编译，**便携包需要在目标平台上构建**（或直接使用 CI 工件）。
 
+### Windows 提示“不信任的应用 / 未知发布者”怎么办
+
+便携包目前**没有代码签名证书**，因此从网络下载后第一次运行时，Windows SmartScreen 会弹出“Windows 已保护你的电脑 / 未知发布者”的提示。这不是病毒告警，而是“这个 exe 没有签名、系统不认识它”。
+
+推荐做法（任选其一）：
+
+1. **先解除锁定再解压**（最干净）：右键下载到的 zip → 属性 → 勾选底部的“解除锁定” → 确定，然后再解压运行；这样解压出来的文件不会带上“来自网络”的标记，通常就不会再弹提示。
+2. 直接运行时点击提示里的 **“更多信息” → “仍要运行”**。
+3. 用 PowerShell 解除锁定：`Unblock-File .\DeepSeekBridge-win64-0.1.1.zip`（解压前后都可以对 exe 再执行一次）。
+
+想确认下载的文件没被篡改，可以对照 Release 里的 `SHA256SUMS.txt` 校验：
+
+```powershell
+Get-FileHash .\DeepSeekBridge-win64-0.1.1.zip -Algorithm SHA256
+```
+
+**彻底消除警告**需要给 exe 做代码签名（需要证书，属于账号/费用层面的事，项目本身无法自行解决）：
+
+- 购买 OV / EV 代码签名证书（EV 可立即消除 SmartScreen 提示，OV 需要积累下载信誉），主流 CA 与国内 CA 均可；
+- 或申请 [SignPath Foundation](https://signpath.org/)（面向开源项目免费签名，需审核，支持 GitHub Actions）；
+- 或使用 Azure Trusted Signing（按月的微软签名服务，需要身份/组织验证）。
+
+拿到证书或签名服务后，把签名步骤接进 `.github/workflows/ci.yml` 即可自动签署所有平台的产物。
+
 ## 数据与隐私
 
 所有数据都在本机，默认数据目录：

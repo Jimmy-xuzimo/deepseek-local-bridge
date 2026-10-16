@@ -81,6 +81,8 @@ const I18N = {
     "faq.a3": "设置页可以一键保存诊断信息（页面结构与选择器命中情况），在数据目录放一个 selectors.json 就能覆盖失效的选择器，不用改代码。",
     "faq.q4": "会有账号风险吗？",
     "faq.a4": "这是非官方方式，可能受网页改版与账号风控影响，请仅个人学习使用、遵守服务条款，避免高频或商用请求。",
+    "faq.q5": "Windows 提示“不信任的应用”怎么办？",
+    "faq.a5": "便携包没有代码签名，首次运行会被 SmartScreen 拦一下：右键 zip → 属性 → 勾选“解除锁定”再解压，或者点“更多信息 → 仍要运行”。想校验文件可对照 Release 里的 SHA256SUMS.txt。",
     "footer.note": "非官方项目 · 仅供个人学习使用 · 请遵守 DeepSeek 服务条款",
     "footer.dl": "下载"
   },
@@ -164,6 +166,8 @@ const I18N = {
     "faq.a3": "Save a diagnostic dump from the settings page (page structure and selector hits), then drop a selectors.json into the data directory to override broken selectors — no code changes.",
     "faq.q4": "Any risk to my account?",
     "faq.a4": "This is an unofficial approach and can be affected by site changes or account controls. Keep it for personal study, follow the terms of service and avoid heavy or commercial use.",
+    "faq.q5": "Windows says \"unrecognized app\" — what now?",
+    "faq.a5": "The portable build is not code-signed, so SmartScreen stops it once: right-click the zip → Properties → tick \"Unblock\" before extracting, or choose \"More info → Run anyway\". You can also verify the file against SHA256SUMS.txt in the release.",
     "footer.note": "Unofficial project · Personal study only · Please respect DeepSeek's terms of service",
     "footer.dl": "Download"
   }
