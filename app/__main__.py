@@ -38,7 +38,8 @@ def _print_banner(bind_host: str, port: int, serve_on_lan: bool, data_dir: Path)
     else:
         print("             : 局域网服务未开启（设置页可开启，需重启服务）")
     print("  模型名称   : deepseek-web（可在设置页查看）")
-    print(f"  设置页     : http://127.0.0.1:{port}/admin/")
+    # 本机访问设置页无需令牌，因此这里直接打印可点击的地址
+    print(f"  设置页     : http://127.0.0.1:{port}/admin/    (仅本机可访问)")
     print(f"  监听地址   : {bind_host}:{port}")
     print(f"  数据目录   : {data_dir}")
     print("  停止服务   : Ctrl+C（后台运行时用 scripts\\stop.ps1）")
@@ -66,7 +67,7 @@ def command_run(args: argparse.Namespace) -> int:
     bind_host = "0.0.0.0" if config.serve_on_lan else config.host
     paths.pid_path.write_text(str(os.getpid()), encoding="utf-8")
     app = create_app(config, paths)
-    admin_url = f"http://127.0.0.1:{config.port}/admin/?token={config.admin_token}"
+    admin_url = f"http://127.0.0.1:{config.port}/admin/"
     _print_banner(bind_host, config.port, config.serve_on_lan, paths.data_dir)
     if args.open_admin:
         threading.Timer(1.5, lambda: webbrowser.open(admin_url)).start()

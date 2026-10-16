@@ -7,6 +7,7 @@ import json
 import secrets
 import shutil
 from pathlib import Path
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -36,10 +37,30 @@ def _host_allowed(request: Request) -> bool:
     return host in {"", "127.0.0.1", "localhost", "::1"}
 
 
+def _same_origin(request: Request) -> bool:
+    """阻止跨站请求（CSRF）：浏览器发出的 Origin 必须与当前 Host 一致。"""
+    origin = request.headers.get("origin")
+    host = request.headers.get("host") or ""
+    if origin:
+        try:
+            parsed = urlparse(origin)
+        except ValueError:
+            return False
+        if parsed.netloc != host:
+            return False
+    fetch_site = (request.headers.get("sec-fetch-site") or "").lower()
+    if fetch_site and fetch_site not in {"same-origin", "none"}:
+        return False
+    return True
+
+
 def _is_authed(request: Request) -> bool:
+    """本机同源访问无需令牌；令牌（cookie / 请求头 / ?token=）依然有效。"""
     config = request.app.state.config
     token = request.cookies.get(COOKIE_NAME) or request.headers.get("x-admin-token", "")
-    return bool(token) and secrets.compare_digest(token, config.admin_token)
+    if token and secrets.compare_digest(token, config.admin_token):
+        return True
+    return _host_allowed(request) and _same_origin(request)
 
 
 def _read_log_tail(path: Path, lines: int = 40) -> str:
@@ -66,8 +87,10 @@ def build_admin_router() -> APIRouter:
             return HTMLResponse(
                 "<html><meta charset='utf-8'><body style='font-family:sans-serif;padding:40px'>"
                 "<h2>需要管理员令牌</h2>"
-                "<p>请通过带 <code>?token=</code> 的地址打开本页（启动脚本会自动打开）。</p>"
-                "<p>令牌保存在数据目录的 config.json 中（字段 admin_token）。</p>"
+                "<p>设置页只允许在<b>本机</b>打开：请在这台电脑上用 "
+                "<code>http://127.0.0.1:8317/admin/</code> 访问。</p>"
+                "<p>如果确实需要令牌（例如通过隧道访问），可在数据目录的 config.json 中查看 "
+                "<code>admin_token</code>，再以 <code>?token=...</code> 打开。</p>"
                 "</body></html>",
                 status_code=401,
             )

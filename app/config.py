@@ -10,7 +10,7 @@ from dataclasses import asdict, dataclass, fields
 from pathlib import Path
 
 APP_NAME = "DeepSeekBridge"
-APP_VERSION = "0.1.0"
+APP_VERSION = "0.1.1"
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8317
 DEFAULT_MODEL = "deepseek-web"
