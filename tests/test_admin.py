@@ -1,0 +1,37 @@
+import pytest
+
+
+@pytest.mark.asyncio
+async def test_admin_requires_token(client):
+    response = await client.get("/admin/")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_admin_token_sets_cookie(client):
+    response = await client.get("/admin/", params={"token": "test-admin"})
+    assert response.status_code == 303
+    assert response.cookies.get("dsb_admin") == "test-admin"
+
+
+@pytest.mark.asyncio
+async def test_admin_state_and_actions(client):
+    client.cookies.set("dsb_admin", "test-admin")
+    state = await client.get("/admin/api/state")
+    assert state.status_code == 200
+    body = state.json()
+    assert body["config"]["api_key"] == "test-key"
+    assert body["backend"]["state"]
+
+    action = await client.post("/admin/api/action", json={"action": "recheck_login"})
+    assert action.status_code == 200
+
+    save = await client.post(
+        "/admin/api/action",
+        json={"action": "save_settings", "settings": {"thinking": True, "idle_seconds": 3.5}},
+    )
+    assert save.status_code == 200
+    assert set(save.json()["changed"]) == {"thinking", "idle_seconds"}
+
+    regen = await client.post("/admin/api/action", json={"action": "regenerate_api_key"})
+    assert regen.json()["api_key"].startswith("sk-dsb-")

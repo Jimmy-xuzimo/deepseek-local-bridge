@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # macOS 14 是 Apple Silicon 运行器，macos-latest 覆盖 Intel 路径
+        os: [ubuntu-latest, windows-latest, macos-latest, macos-14]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest pytest-asyncio
+      - name: 运行单元测试
+        run: python -m pytest -q
+      - name: 环境自检（无浏览器时应给出明确提示）
+        continue-on-error: true
+        run: python -m app doctor
+
+  portable:
+    name: portable (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest, macos-14]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pyinstaller
+      - name: 打包（PyInstaller onedir）
+        run: python -m PyInstaller --noconfirm --clean scripts/deepseek_bridge.spec
+      - name: 打包冒烟测试
+        continue-on-error: true
+        shell: bash
+        run: |
+          if [ -f dist/DeepSeekBridge/DeepSeekBridge ]; then
+            dist/DeepSeekBridge/DeepSeekBridge doctor
+          else
+            dist/DeepSeekBridge/DeepSeekBridge.exe doctor
+          fi
+      - name: 压缩产物
+        run: |
+          python - <<'PY'
+          import pathlib, shutil, sys
+          version = "0.1.0"
+          for line in pathlib.Path("app/config.py").read_text(encoding="utf-8").splitlines():
+              if line.startswith("APP_VERSION"):
+                  version = line.split('"')[1]
+                  break
+          name = f"DeepSeekBridge-{sys.platform}-{version}"
+          shutil.make_archive(name, "zip", root_dir="dist", base_dir="DeepSeekBridge")
+          print("archive:", name + ".zip")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DeepSeekBridge-${{ matrix.os }}
+          path: |
+            DeepSeekBridge-*.zip
+          if-no-files-found: error
