@@ -24,6 +24,17 @@ def _configure_stdio() -> None:
             pass
 
 
+def _normalize_argv(argv: list[str]) -> list[str]:
+    """允许省略 run 子命令：`app --open-admin` 等价于 `app run --open-admin`。"""
+    if not argv:
+        return ["run"]
+    if argv[0] in {"-h", "--help"}:
+        return argv
+    if argv[0].startswith("-"):
+        return ["run", *argv]
+    return argv
+
+
 def _print_banner(bind_host: str, port: int, serve_on_lan: bool, data_dir: Path) -> None:
     print("=" * 64)
     print(f"  {APP_NAME} v{APP_VERSION}  —  DeepSeek 网页 → 本地 OpenAI API")
@@ -162,6 +173,7 @@ def command_doctor(args: argparse.Namespace) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     _configure_stdio()
+    arguments = _normalize_argv(list(sys.argv[1:] if argv is None else argv))
     parser = argparse.ArgumentParser(prog="deepseek-local-bridge")
     subparsers = parser.add_subparsers(dest="command")
 
@@ -178,9 +190,7 @@ def main(argv: list[str] | None = None) -> int:
     doctor_parser.add_argument("--data-dir", default=None, help="数据目录")
     doctor_parser.set_defaults(func=command_doctor)
 
-    args = parser.parse_args(argv)
-    if not getattr(args, "func", None):
-        args = parser.parse_args(["run", *(argv or [])])
+    args = parser.parse_args(arguments)
     result = args.func(args)
     return int(result or 0)
 
