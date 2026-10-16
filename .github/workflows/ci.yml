@@ -58,21 +58,10 @@ jobs:
             dist/DeepSeekBridge/DeepSeekBridge.exe doctor
           fi
       - name: 压缩产物
-        run: |
-          python - <<'PY'
-          import pathlib, shutil, sys
-          version = "0.1.0"
-          for line in pathlib.Path("app/config.py").read_text(encoding="utf-8").splitlines():
-              if line.startswith("APP_VERSION"):
-                  version = line.split('"')[1]
-                  break
-          name = f"DeepSeekBridge-{sys.platform}-{version}"
-          shutil.make_archive(name, "zip", root_dir="dist", base_dir="DeepSeekBridge")
-          print("archive:", name + ".zip")
-          PY
+        run: python scripts/make_archive.py
       - uses: actions/upload-artifact@v4
         with:
           name: DeepSeekBridge-${{ matrix.os }}
           path: |
-            DeepSeekBridge-*.zip
+            dist/DeepSeekBridge-*.zip
           if-no-files-found: error

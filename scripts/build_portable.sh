@@ -19,13 +19,8 @@ echo "安装打包依赖 ..."
 echo "开始打包（首次约 2-5 分钟）..."
 "$BUILD_PY" -m PyInstaller --noconfirm --clean "$ROOT/scripts/deepseek_bridge.spec"
 
-VERSION="$(sed -n 's/^APP_VERSION = "\(.*\)"/\1/p' "$ROOT/app/config.py")"
-OS_NAME="$(uname -s | tr '[:upper:]' '[:lower:]')"
-ARCH="$(uname -m)"
-ZIP_NAME="DeepSeekBridge-${OS_NAME}-${ARCH}-${VERSION}.zip"
-
 cp "$ROOT/README.md" "$ROOT/dist/DeepSeekBridge/README.md"
 cp -r "$ROOT/docs" "$ROOT/dist/DeepSeekBridge/"
 
-(cd "$ROOT/dist/DeepSeekBridge" && zip -qr "../$ZIP_NAME" .)
-echo "已生成便携包：$ROOT/dist/$ZIP_NAME"
+"$BUILD_PY" "$ROOT/scripts/make_archive.py"
+echo "便携包已生成在 $ROOT/dist/ 下。"

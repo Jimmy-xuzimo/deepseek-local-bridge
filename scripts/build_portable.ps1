@@ -28,12 +28,9 @@ Write-Host "安装打包依赖 ..."
 Write-Host "开始打包（首次约 2-5 分钟）..."
 & $buildPython -m PyInstaller --noconfirm --clean (Join-Path $root "scripts\deepseek_bridge.spec")
 
-$configText = Get-Content -LiteralPath (Join-Path $root "app\config.py") -Raw
-$version = ([regex]'APP_VERSION = "([^"]+)"').Match($configText).Groups[1].Value
 $distDir = Join-Path $root "dist\DeepSeekBridge"
 Copy-Item (Join-Path $root "README.md") (Join-Path $distDir "README.md") -Force
 Copy-Item (Join-Path $root "docs") $distDir -Recurse -Force
 
-$zip = Join-Path $root "dist\DeepSeekBridge-win64-$version.zip"
-Compress-Archive -Path (Join-Path $distDir "*") -DestinationPath $zip -Force
-Write-Host "已生成便携包：$zip" -ForegroundColor Green
+& (Join-Path $buildVenv "Scripts\python.exe") (Join-Path $root "scripts\make_archive.py")
+Write-Host "便携包已生成在 $root\dist 下。" -ForegroundColor Green
