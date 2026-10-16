@@ -4,6 +4,8 @@
 
 > ⚠️ 非官方项目：通过浏览器自动化调用网页版，可能受网页改版、账号风控影响，也可能不符合 DeepSeek 服务条款。请仅在本机、个人学习范围内使用，不要商用、不要大规模并发。
 
+🌐 **项目介绍页（中英双语 / 深浅色主题）**：https://jimmy-xuzimo.github.io/deepseek-local-bridge/
+
 ## 功能
 
 - `/v1/models`、`/v1/chat/completions`（支持 `stream` 流式输出），模型统一为 `deepseek-web`
