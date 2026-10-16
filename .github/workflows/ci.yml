@@ -13,8 +13,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # macOS 14 是 Apple Silicon 运行器，macos-latest 覆盖 Intel 路径
-        os: [ubuntu-latest, windows-latest, macos-latest, macos-14]
+        # 覆盖 x64 与 arm64：Linux / Windows / macOS 各两种架构
+        os:
+          - ubuntu-latest      # Linux x64
+          - ubuntu-24.04-arm   # Linux arm64
+          - windows-latest     # Windows x64
+          - windows-11-arm     # Windows arm64
+          - macos-15-intel     # macOS Intel
+          - macos-14           # macOS Apple Silicon
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -36,7 +42,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest, macos-14]
+        os:
+          - ubuntu-latest
+          - ubuntu-24.04-arm
+          - windows-latest
+          - windows-11-arm
+          - macos-15-intel
+          - macos-14
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
