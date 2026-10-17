@@ -1,404 +1,478 @@
-/* DeepSeek Local Bridge · 介绍页交互（无依赖） */
-
-const I18N = {
-  zh: {
-    "doc.title": "DeepSeek Local Bridge · 把 DeepSeek 网页版变成本机 API",
-    "nav.features": "特性",
-    "nav.how": "原理",
-    "nav.clients": "接入",
-    "nav.download": "下载",
-    "hero.badge": "非官方 · MIT 开源 · 数据不出本机",
-    "hero.title": '把 DeepSeek 网页版<br/><span class="grad">变成本机可用的 API</span>',
-    "hero.lead": "登录一次，Chatbox、Codex CLI 等客户端就能通过标准 OpenAI 接口调用 DeepSeek 网页版：流式输出、深度思考、联网搜索、附件与工具调用全都保留。",
-    "hero.cta1": "下载便携包",
-    "hero.ctaWindows": "下载 Windows 便携包",
-    "hero.ctaMac": "下载 macOS 便携包",
-    "hero.ctaLinux": "下载 Linux 便携包",
-    "hero.mobileHint": "手机 / 平板无法直接运行便携包：在电脑上启动服务后，用局域网地址（192.168.x.x）把手机接进来即可。",
-    "hero.cta2": "查看源码",
-    "hero.meta": "Windows / macOS / Linux · x64 与 ARM64 · 一条命令启动",
-    "stats.platforms": "平台便携包",
-    "stats.tests": "单元测试",
-    "stats.ci": "CI 任务全绿",
-    "stats.local": "本地运行",
-    "demo.ready": "已就绪",
-    "demo.title": "DeepSeek Local Bridge",
-    "demo.endpoint": "本机地址",
-    "demo.lan": "局域网",
-    "demo.think": "深度思考",
-    "demo.search": "联网搜索",
-    "demo.cors": "CORS",
-    "demo.client": "客户端",
-    "demo.bridge": "本机服务",
-    "demo.web": "DeepSeek 网页",
-    "features.title": "能力一览",
-    "features.lead": "标准接口 + 网页版能力全覆盖，客户端几乎不用改配置。",
-    "f1.t": "OpenAI 兼容",
-    "f1.d": "提供 /v1/chat/completions（SSE 流式）、/v1/models 与 /v1/files，任何兼容客户端直接填地址即可。",
-    "f2.t": "深度思考",
-    "f2.d": "网页版思考过程通过 reasoning_content 回传，Chatbox 里可以直接查看模型的推理链。",
-    "f3.t": "联网搜索",
-    "f3.d": "一键开启网页版联网搜索，回答里保留网页给出的参考链接。",
-    "f4.t": "附件直传",
-    "f4.d": "图片、PDF、TXT/MD、DOCX 都能丢给网页版解析，接口层兼容图片与文件两种写法。",
-    "f5.t": "工具调用",
-    "f5.d": "把 function calling 桥接到网页版，配合 CC Switch 可让 Codex CLI 完成读写代码、跑测试的完整闭环。",
-    "f6.t": "多会话映射",
-    "f6.d": "客户端每个对话对应一个网页对话；新建会新建，切回旧对话会切回原来的网页对话，上下文不丢。",
-    "f7.t": "局域网可用",
-    "f7.d": "开启“在网络中提供服务”，手机、平板用 192.168 地址加同一个 API Key 即可接入，CORS 随时开关。",
-    "f8.t": "稳定与可控",
-    "f8.d": "串行队列、请求取消、网页限流识别（429）、请求最小间隔、页面诊断与选择器覆盖，出问题能自查。",
-    "f9.t": "跨平台",
-    "f9.d": "Windows / macOS / Linux，x64 与 ARM64 都有构建；一键脚本、便携包与 CI 三件套齐全。",
-    "how.title": "三步开始",
-    "how.lead": "不需要官方 API Key，用你已有的网页版账号即可。",
-    "how.s1t": "启动并登录一次",
-    "how.s1d": "运行 start.bat / ./start.sh，弹出专用浏览器窗口登录 DeepSeek；登录状态长期保留，可以最小化窗口。",
-    "how.s2t": "本地服务就绪",
-    "how.s2d": "设置页自动打开，显示 127.0.0.1:8317、API Key、思考/联网开关与局域网地址，还带一键自测。",
-    "how.s3t": "客户端接入",
-    "how.s3d": "Chatbox 填地址与 Key 就能聊；Codex CLI 通过 CC Switch 的路由模式接入，工具调用自动桥接。",
-    "clients.title": "客户端接入",
-    "clients.lead": "复制粘贴即可，配置项一共三个：地址、Key、模型名。",
-    "clients.copy": "复制",
-    "clients.chatboxHead": "Chatbox · OpenAI API 兼容",
-    "clients.codexHead": "CC Switch · Routing",
-    "clients.chatboxTip": "Chatbox 会自动补 /v1；连不上时改成 http://127.0.0.1:8317/v1 再试。",
-    "clients.codexTip": "Codex 用 Responses 协议，交给 CC Switch 转成 Chat Completions 再进本服务。",
-    "clients.curlTip": "Python 里把 base_url 设为 http://127.0.0.1:8317/v1 即可直接复用 OpenAI SDK。",
-    "clients.chatboxSnippet": '<span class="c-key">API 域名</span>  http://127.0.0.1:8317\n<span class="c-key">API Key</span>   在设置页「客户端接入」一键复制\n<span class="c-key">模型名称</span>  deepseek-web',
-    "clients.codexSnippet": '<span class="c-key">API Request URL</span>  http://127.0.0.1:8317/v1\n<span class="c-key">Default Model</span>    deepseek-web\n<span class="c-key">Upstream Format</span>  OpenAI Chat Completions（需要路由）\n<span class="c-key">Routing</span>          打开总开关并启用 Codex，然后重启终端',
-    "dl.title": "下载便携包",
-    "dl.lead": "自带 Python 运行时，解压即用；也可以从源码一键启动。",
-    "qs.title": "从源码启动",
-    "faq.title": "常见疑问",
-    "faq.q1": "需要官方 API Key 吗？",
-    "faq.a1": "不需要。它使用你已登录的 DeepSeek 网页版账号，因此也不受官方 API 计费影响。",
-    "faq.q2": "数据会上传到别处吗？",
-    "faq.a2": "服务只监听本机，登录配置、附件、日志、会话映射都存在你的数据目录里；日志只记录长度与耗时，不记录对话内容和凭证。",
-    "faq.q3": "网页改版了怎么办？",
-    "faq.a3": "设置页可以一键保存诊断信息（页面结构与选择器命中情况），在数据目录放一个 selectors.json 就能覆盖失效的选择器，不用改代码。",
-    "faq.q4": "会有账号风险吗？",
-    "faq.a4": "这是非官方方式，可能受网页改版与账号风控影响，请仅个人学习使用、遵守服务条款，避免高频或商用请求。",
-    "faq.q5": "Windows 提示“不信任的应用”怎么办？",
-    "faq.a5": "便携包没有代码签名，首次运行会被 SmartScreen 拦一下：右键 zip → 属性 → 勾选“解除锁定”再解压，或者点“更多信息 → 仍要运行”。想校验文件可对照 Release 里的 SHA256SUMS.txt。",
-    "footer.note": "非官方项目 · 仅供个人学习使用 · 请遵守 DeepSeek 服务条款",
-    "footer.dl": "下载"
-  },
-  en: {
-    "doc.title": "DeepSeek Local Bridge · Turn the DeepSeek web app into a local API",
-    "nav.features": "Features",
-    "nav.how": "How it works",
-    "nav.clients": "Clients",
-    "nav.download": "Download",
-    "hero.badge": "Unofficial · MIT licensed · Your data stays local",
-    "hero.title": 'Turn the DeepSeek web app<br/><span class="grad">into a local API you can use anywhere</span>',
-    "hero.lead": "Sign in once, then Chatbox, Codex CLI and any OpenAI-compatible client can talk to the DeepSeek web app — streaming, deep thinking, web search, attachments and tool calls included.",
-    "hero.cta1": "Download portable build",
-    "hero.ctaWindows": "Download for Windows",
-    "hero.ctaMac": "Download for macOS",
-    "hero.ctaLinux": "Download for Linux",
-    "hero.mobileHint": "Portable builds need a desktop OS — start the service on your computer, then connect your phone through the LAN URL (192.168.x.x).",
-    "hero.cta2": "View source",
-    "hero.meta": "Windows / macOS / Linux · x64 and ARM64 · one command to start",
-    "stats.platforms": "portable builds",
-    "stats.tests": "unit tests",
-    "stats.ci": "green CI jobs",
-    "stats.local": "runs locally",
-    "demo.ready": "Ready",
-    "demo.title": "DeepSeek Local Bridge",
-    "demo.endpoint": "Local URL",
-    "demo.lan": "LAN",
-    "demo.think": "Deep thinking",
-    "demo.search": "Web search",
-    "demo.cors": "CORS",
-    "demo.client": "Client",
-    "demo.bridge": "Local bridge",
-    "demo.web": "DeepSeek web",
-    "features.title": "What you get",
-    "features.lead": "A standard API on top of everything the web app can do — clients barely need any setup.",
-    "f1.t": "OpenAI compatible",
-    "f1.d": "/v1/chat/completions (SSE streaming), /v1/models and /v1/files — point any compatible client at the local URL.",
-    "f2.t": "Deep thinking",
-    "f2.d": "The web app's reasoning is returned as reasoning_content, so Chatbox can show the model's chain of thought.",
-    "f3.t": "Web search",
-    "f3.d": "Toggle the web app's search on and keep the reference links it returns.",
-    "f4.t": "Attachments",
-    "f4.d": "Images, PDF, TXT/MD and DOCX are forwarded to the web app; both image and file content parts are supported.",
-    "f5.t": "Tool calling",
-    "f5.d": "Function calling is bridged to the web app — with CC Switch, Codex CLI can read code, edit it and run tests end to end.",
-    "f6.t": "Conversation mapping",
-    "f6.d": "Each client conversation maps to its own web conversation; switch back and your context is still there.",
-    "f7.t": "LAN ready",
-    "f7.d": "Serve on the local network so phones and tablets can connect with a 192.168 address and the same API key; CORS is a switch.",
-    "f8.t": "Stable and observable",
-    "f8.d": "Serialized queue, cancellation, rate-limit detection (429), minimum request interval, diagnostics and selector overrides.",
-    "f9.t": "Cross platform",
-    "f9.d": "Windows, macOS and Linux on x64 and ARM64, with one-click scripts, portable builds and CI coverage.",
-    "how.title": "Three steps",
-    "how.lead": "No official API key required — it uses the web account you already have.",
-    "how.s1t": "Start and sign in once",
-    "how.s1d": "Run start.bat / ./start.sh, sign in to DeepSeek in the dedicated browser window; the session is kept for next time.",
-    "how.s2t": "Local service is ready",
-    "how.s2d": "The settings page opens with 127.0.0.1:8317, your API key, thinking/search switches, LAN URL and a built-in self test.",
-    "how.s3t": "Connect your client",
-    "how.s3d": "Paste the URL and key into Chatbox, or route Codex CLI through CC Switch — tool calls are bridged automatically.",
-    "clients.title": "Connect a client",
-    "clients.lead": "Copy and paste: you only need the URL, the key and the model name.",
-    "clients.copy": "Copy",
-    "clients.chatboxHead": "Chatbox · OpenAI compatible",
-    "clients.codexHead": "CC Switch · Routing",
-    "clients.chatboxTip": "Chatbox appends /v1 automatically; if it fails, try http://127.0.0.1:8317/v1.",
-    "clients.codexTip": "Codex speaks the Responses API; let CC Switch convert it to Chat Completions for this service.",
-    "clients.curlTip": "In Python just set base_url to http://127.0.0.1:8317/v1 and reuse the official OpenAI SDK.",
-    "clients.chatboxSnippet": '<span class="c-key">API host</span>   http://127.0.0.1:8317\n<span class="c-key">API key</span>    copy it from the settings page\n<span class="c-key">Model</span>      deepseek-web',
-    "clients.codexSnippet": '<span class="c-key">API Request URL</span>  http://127.0.0.1:8317/v1\n<span class="c-key">Default Model</span>    deepseek-web\n<span class="c-key">Upstream Format</span>  OpenAI Chat Completions (routing required)\n<span class="c-key">Routing</span>           enable it and turn Codex on, then restart the terminal',
-    "dl.title": "Download",
-    "dl.lead": "Portable builds bundle Python — unzip and run. Or start straight from source.",
-    "qs.title": "Start from source",
-    "faq.title": "FAQ",
-    "faq.q1": "Do I need an official API key?",
-    "faq.a1": "No. It drives the DeepSeek web account you are already signed in to, so official API billing does not apply.",
-    "faq.q2": "Is my data uploaded anywhere?",
-    "faq.a2": "The service only listens on localhost. Login profile, uploads, logs and conversation mapping live in your data directory, and logs never contain message text or credentials.",
-    "faq.q3": "What if the website changes?",
-    "faq.a3": "Save a diagnostic dump from the settings page (page structure and selector hits), then drop a selectors.json into the data directory to override broken selectors — no code changes.",
-    "faq.q4": "Any risk to my account?",
-    "faq.a4": "This is an unofficial approach and can be affected by site changes or account controls. Keep it for personal study, follow the terms of service and avoid heavy or commercial use.",
-    "faq.q5": "Windows says \"unrecognized app\" — what now?",
-    "faq.a5": "The portable build is not code-signed, so SmartScreen stops it once: right-click the zip → Properties → tick \"Unblock\" before extracting, or choose \"More info → Run anyway\". You can also verify the file against SHA256SUMS.txt in the release.",
-    "footer.note": "Unofficial project · Personal study only · Please respect DeepSeek's terms of service",
-    "footer.dl": "Download"
-  }
+"use strict";
+// The initial Chinese HTML is also the no-JavaScript content and dictionary source.
+const zh = {
+  themePrefix: "主题：",
+  themeSystem: "跟随系统",
+  themeDark: "深色",
+  themeLight: "浅色",
+  themeNext: "切换至",
+  copied: "已复制 ✓",
+  failed: "复制失败",
+  copyFailed: "复制失败，请手动选择并复制内容。",
+  closeMenu: "关闭导航",
+  traceClient: "客户端发出 Chat Completions 请求。",
+  traceBridge: "本机 Bridge 排队处理，并操作专用浏览器。",
+  traceWeb: "DeepSeek 网页服务处理消息并生成回答。",
+  traceComplete: "回答经 Bridge 转换后，返回客户端。",
+  running: "演示中…",
+  title: document.title,
+  description: document.querySelector('meta[name="description"]').content,
 };
-
-const $ = (sel, root = document) => root.querySelector(sel);
-const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
-
-/* ---------- 设备 / 浏览器识别（UA + UA-CH，失败时退回媒体查询） ---------- */
-function detectDevice() {
-  const ua = navigator.userAgent || "";
-  const platform = (navigator.userAgentData && navigator.userAgentData.platform) || "";
-  const touchPoints = navigator.maxTouchPoints || 0;
-  const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
-  const canHover = window.matchMedia("(hover: hover)").matches;
-  // iPadOS 13+ 的 UA 与 macOS 相同：用“触摸点 + 粗指针”区分，避免触屏笔记本被误判
-  const isIOS = /iPad|iPhone|iPod/.test(ua)
-    || (platform === "macOS" && touchPoints > 1 && coarsePointer);
-  const isAndroid = /Android/.test(ua) || platform === "Android";
-  const isTablet = isIOS ? /iPad/.test(ua) || (touchPoints > 1 && !/iPhone/.test(ua))
-                         : isAndroid && !/Mobile/.test(ua);
-  const os = isIOS ? "ios"
-    : isAndroid ? "android"
-    : /Windows/i.test(platform || ua) ? "windows"
-    : /Mac/i.test(platform || ua) ? "macos"
-    : /Linux|X11|CrOS/i.test(platform || ua) ? "linux"
-    : "unknown";
-  return {
-    os,
-    isMobile: isIOS || isAndroid,
-    isTablet: Boolean(isTablet),
-    // 只有“不能悬停”的设备才算触屏（触屏笔记本仍按桌面处理）
-    isTouch: !canHover || /Mobile|Tablet|Android|iPhone|iPad/.test(ua),
-  };
+document.querySelectorAll("[data-i18n]").forEach((el) => {
+  zh[el.dataset.i18n] = el.textContent.trim().replace(/\\n/g, "\n");
+});
+document.querySelectorAll("[data-label]").forEach((el) => {
+  zh[el.dataset.label] = el.getAttribute("aria-label");
+});
+const en = {
+  skip: "Skip to content",
+  navigation: "Main navigation",
+  mobileNavigation: "Mobile navigation",
+  openMenu: "Open navigation",
+  closeMenu: "Close navigation",
+  navFeatures: "Features",
+  navHow: "How it works",
+  navClients: "Connect",
+  navDownload: "Download",
+  heroTag: "UNOFFICIAL · MIT OPEN SOURCE · LOCAL BRIDGE",
+  hero1: "Connect the web.",
+  hero2: "Bring your workflow.",
+  heroDesc:
+    "Bridge the DeepSeek web app to a local OpenAI-compatible API. Sign in through a dedicated browser, then keep working in the clients you know.",
+  getBridge: "Get the bridge",
+  viewSource: "View source",
+  heroBoundary:
+    "The bridge runs locally. Model inference still happens through DeepSeek’s web service.",
+  illustration: "Illustration",
+  sampleRequest: "Example request",
+  routeLabel:
+    "Client connects through the local bridge to the DeepSeek web service",
+  routeClient: "Client",
+  routeBridge: "Local bridge",
+  routeWeb: "DeepSeek web",
+  traceIdle: "Run the illustration to follow a request.",
+  runDemo: "Run illustration",
+  demoNote:
+    "A browser-only illustration. No local service or real account is accessed.",
+  compatibleLabel: "CONNECT THE TOOLS YOU KNOW",
+  connectionGuide: "Explore the connections",
+  featuresTitle: "Keep the capabilities. Connect more tools.",
+  featuresDesc:
+    "Bring the web app’s supported interactions\nto compatible clients in your workflow.",
+  streamTitle: "From one prompt to a flowing answer.",
+  streamDesc:
+    "Stream responses, use DeepThink and enable web search. Manage preferences in the local admin page, or override thinking and search per request.",
+  toolsTitle: "Bring tools into the conversation.",
+  toolsDesc:
+    "Function calling is bridged through a prompt protocol. Valid outputs are converted to standard tool_calls for supported clients to execute.",
+  toolsFoot:
+    "Tool requests buffer the full answer. Invalid tool output falls back to text.",
+  filesTitle: "Beyond text. Back to your context.",
+  filesDesc:
+    "Work with images, PDFs, TXT, Markdown and DOCX attachments. Persistent conversation mappings reconnect client chats to their original web conversations.",
+  controlTitle: "Every request, in its own turn.",
+  controlDesc:
+    "One account handles requests serially; others wait in a queue. Cancellation, timeouts, rate-limit messages and request spacing are managed alongside login, diagnostics and logs.",
+  howTitle: "A bridge with a clear role at each end.",
+  architecture: "Read the architecture notes",
+  archClientTitle: "Your client",
+  archClientDesc:
+    "Sends Chat Completions requests using the API key generated by your local bridge.",
+  archBridgeDesc:
+    "FastAPI, a serial queue and conversation mappings hand work to Playwright and a dedicated browser.",
+  archWebTitle: "DeepSeek’s web service",
+  archWebDesc:
+    "Processes messages through your signed-in web account. The bridge converts the result into a compatible response.",
+  howNote:
+    "This is browser automation and protocol adaptation, not an offline model. Messages and attachments are submitted to DeepSeek. Browser profiles, attachments, logs and conversation mappings are stored locally.",
+  clientsTitle: "Familiar tools. A different connection.",
+  clientsDesc:
+    "Start the bridge and sign in through its dedicated browser.\nCopy the API key from your local admin page to connect.",
+  clientTabs: "Client configuration",
+  chatboxTitle: "Three settings. Your next conversation.",
+  chatboxDesc:
+    "Add a custom provider in Chatbox, select an OpenAI-compatible API, and enter the address, API key and model.",
+  fullGuide: "Full connection guide",
+  apiAddress: "API address",
+  copyAddress: "Copy API address",
+  keyLocal: "Copy from the local admin page",
+  model: "Model",
+  copyModel: "Copy model name",
+  chatboxNote:
+    "Chatbox usually appends /v1 automatically. If you encounter a 404 or connection failure, try the full /v1 URL.",
+  codexTitle: "Add the protocol conversion for Codex CLI.",
+  codexDesc:
+    "Create a Codex provider in CC Switch. Set the upstream format to OpenAI Chat Completions, turn on Routing, and enable routing for Codex.",
+  routing: "Local routing",
+  codexNote:
+    "Bridge does not directly implement the Responses API. Codex CLI relies on CC Switch routing for conversion. Tool use also depends on the web model’s output and serial processing.",
+  curlTitle: "Understand the API with one request.",
+  curlDesc:
+    "Toggle options to build an example. This page never executes it. Use your real local API key on the computer running Bridge.",
+  requestOptions: "Request options",
+  optionStream: "Streaming",
+  optionThinking: "DeepThink",
+  optionSearch: "Web search",
+  shellNote: "The example uses Bash syntax. On Windows, use Git Bash or WSL.",
+  copyRequest: "Copy request",
+  downloadTitle: "Choose your platform. Make the connection.",
+  windowsSupport: "Windows 10 / 11",
+  windowsNote: "Extract and run DeepSeekBridge.exe",
+  macSupport: "macOS 12+ · Intel / Apple Silicon",
+  macNote: "Choose the package for your processor",
+  linuxSupport: "Common Linux distributions",
+  linuxNote: "Requires a working desktop browser environment",
+  portableNote:
+    "Portable packages include a Python runtime. Edge, Chrome or a usable Chromium is still required. Cross-platform packaging and CI checks do not equal end-to-end testing with a real account.",
+  allReleases: "View the latest release",
+  sourceLabel: "OR START FROM SOURCE",
+  sourceNote:
+    "Requires Python 3.10+ and Edge / Chrome. Dependencies are installed on first launch.",
+  sourceTabs: "Source startup platform",
+  copyCommands: "Copy commands",
+  step1Title: "Start Bridge",
+  step1Desc:
+    "Run a portable package or startup script to open the local admin page.",
+  step2Title: "Sign in on the web",
+  step2Desc:
+    "Log in to DeepSeek in the dedicated browser and keep that window running.",
+  step3Title: "Connect your client",
+  step3Desc:
+    "Copy the local API key, set the address and use the deepseek-web model.",
+  faqTitle: "Know the boundaries before you begin.",
+  faqIntro:
+    "An unofficial project for personal learning. Web changes, account controls and service terms may affect availability. Do not use commercially or at large concurrency.",
+  troubleshooting: "Troubleshooting guide",
+  faq1q: "Do I need an official DeepSeek API key?",
+  faq1a:
+    "This project uses your signed-in DeepSeek web account rather than an official API key. Clients use the API key generated by your local Bridge instance. It is not a commitment to replace the official API; availability and limits still depend on the web service.",
+  faq2q: "Does “local” mean my conversations stay offline?",
+  faq2a:
+    "No. The bridge, browser profile and conversation mappings run or reside on your machine, but messages and attachments are sent to DeepSeek’s web service for processing. This is not offline inference or a guarantee that all data stays on-device.",
+  faq3q: "Can phones and other devices on my LAN connect?",
+  faq3a:
+    "Use the LAN address shown in the admin page with the same API key. LAN serving and CORS are currently enabled by default; changing the port or LAN setting requires a restart. The admin page remains localhost-only. Do not forward the port to the public internet or disable API-key checks.",
+  faq4q: "What are the limits of tools and streaming?",
+  faq4a:
+    "Tool calling uses a prompt protocol and waits for the full answer before parsing. Invalid tool output falls back to ordinary text. Requests for one account are processed serially, so multi-step tasks queue. Codex CLI uses Responses and needs CC Switch routing for conversion.",
+  faq5q: "Why does Windows show an unknown publisher?",
+  faq5a:
+    "Windows portable builds are currently unsigned and may show a SmartScreen reputation prompt. Confirm the download source and compare its hash against the release’s SHA256SUMS.txt. Signing status, reputation prompts and malware detection are distinct. See the repository documentation for guidance.",
+  faq6q: "What if the web app changes or my login expires?",
+  faq6a:
+    "Check login status in your local admin page and sign in again. For structural web changes, save diagnostics and follow the documentation to override selectors with selectors.json. Remove sensitive details before reporting an issue.",
+  closingTitle: "A little less distance between your tools.",
+  closingDesc: "From download and sign-in to your next local API call.",
+  feedback: "Feedback & ideas",
+  footerNote: "Unofficial. Not affiliated with or endorsed by DeepSeek.",
+  documentation: "Documentation",
+  themePrefix: "Theme: ",
+  themeSystem: "System",
+  themeDark: "Dark",
+  themeLight: "Light",
+  themeNext: "Switch to",
+  copied: "Copied ✓",
+  failed: "Copy failed",
+  copyFailed: "Copy failed. Please select and copy the content manually.",
+  traceClient: "The client sends a Chat Completions request.",
+  traceBridge: "Bridge queues the request and operates the dedicated browser.",
+  traceWeb:
+    "DeepSeek’s web service processes the message and generates an answer.",
+  traceComplete: "Bridge converts the answer and returns it to the client.",
+  running: "Running…",
+  title: "DeepSeek Local Bridge — Connect the web to your workflow.",
+  description:
+    "Bridge the DeepSeek web app to a local OpenAI-compatible API. Streaming, DeepThink, web search, files and tool calling. Portable packages for Windows, macOS and Linux. Unofficial project.",
+};
+const translations = { zh, en };
+let language = document.documentElement.lang === "en" ? "en" : "zh",
+  preference = document.documentElement.dataset.preference;
+const systemTheme = matchMedia("(prefers-color-scheme: dark)"),
+  themeOrder = ["system", "dark", "light"],
+  themeKeys = { system: "themeSystem", dark: "themeDark", light: "themeLight" };
+function save(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {}
 }
-
-const DEVICE = detectDevice();
-
-function markDevice() {
-  const root = document.documentElement;
-  root.dataset.os = DEVICE.os;
-  root.classList.add(DEVICE.isMobile ? "is-mobile" : "is-desktop");
-  if (DEVICE.isTablet) root.classList.add("is-tablet");
-  if (DEVICE.isTouch) root.classList.add("is-touch");
-  root.classList.add(`os-${DEVICE.os}`);
-}
-
-/* 按系统给出对应的下载文案；手机/平板给出局域网接入提示 */
-function updateDownloadCta() {
-  const label = $("#cta-label");
-  const hint = $("#mobile-hint");
-  const lang = document.documentElement.lang === "en" ? "en" : "zh";
-  const dict = I18N[lang];
-  if (label) {
-    const key = { windows: "hero.ctaWindows", macos: "hero.ctaMac", linux: "hero.ctaLinux" }[DEVICE.os];
-    label.textContent = dict[key] || dict["hero.cta1"];
-  }
-  if (hint) {
-    const mobile = DEVICE.isMobile;
-    hint.hidden = !mobile;
-    if (mobile) {
-      hint.textContent = dict["hero.mobileHint"];
-      hint.classList.add("in");
-    }
-  }
-}
-
-/* ---------- 主题 ---------- */
-function applyTheme(theme, persist = true) {
+function applyTheme() {
+  const theme =
+    preference === "system"
+      ? systemTheme.matches
+        ? "dark"
+        : "light"
+      : preference;
   document.documentElement.dataset.theme = theme;
-  const btn = $("#theme-toggle");
-  if (btn) btn.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
-  const meta = $("#theme-color");
-  if (meta) meta.setAttribute("content", theme === "dark" ? "#080b12" : "#f6f8fd");
-  if (persist) {
-    try { localStorage.setItem("dsb-theme", theme); } catch (e) { /* ignore */ }
-  }
+  document.documentElement.dataset.preference = preference;
+  document.querySelector('meta[name="theme-color"]').content =
+    theme === "dark" ? "#0c1220" : "#f6f8fc";
+  const t = translations[language],
+    next = themeOrder[(themeOrder.indexOf(preference) + 1) % 3],
+    label = `${t.themePrefix}${t[themeKeys[preference]]}. ${t.themeNext} ${t[themeKeys[next]]}`;
+  const button = document.getElementById("theme");
+  button.title = label;
+  button.setAttribute("aria-label", label);
 }
-
-/* ---------- 语言 ---------- */
-function applyLang(lang, persist = true) {
-  const dict = I18N[lang] || I18N.zh;
-  document.documentElement.lang = lang === "en" ? "en" : "zh-CN";
-  document.title = dict["doc.title"] || document.title;
-  $$("[data-i18n]").forEach((el) => {
-    const value = dict[el.dataset.i18n];
-    if (value !== undefined) el.textContent = value;
-  });
-  $$("[data-i18n-html]").forEach((el) => {
-    const value = dict[el.dataset.i18nHtml];
-    if (value !== undefined) el.innerHTML = value;
-  });
-  const toggle = $("#lang-toggle");
-  if (toggle) toggle.dataset.lang = lang;
-  updateDownloadCta();
-  if (persist) {
-    try { localStorage.setItem("dsb-lang", lang); } catch (e) { /* ignore */ }
-  }
+let traceState = -1,
+  traceTimer = null;
+const traceKeys = ["traceClient", "traceBridge", "traceWeb", "traceComplete"];
+function renderTrace() {
+  const t = translations[language];
+  document.getElementById("trace-text").textContent =
+    traceState === -1 ? t.traceIdle : t[traceKeys[traceState]];
+  document
+    .querySelectorAll("[data-route]")
+    .forEach((el) =>
+      el.classList.toggle("active", traceState >= Number(el.dataset.route)),
+    );
+  document.getElementById("trace-stage").textContent =
+    traceState === -1
+      ? "READY / DEMO"
+      : traceState === 3
+        ? "COMPLETE / DEMO"
+        : `STEP 0${traceState + 1} / DEMO`;
+  const button = document.getElementById("trace-play");
+  button.disabled = traceState >= 0 && traceState < 3;
+  button.querySelector("[data-i18n]").textContent = button.disabled
+    ? t.running
+    : t.runDemo;
 }
-
-/* ---------- 进入动画 ---------- */
-function setupReveal() {
-  const items = $$(".reveal");
-  if (!("IntersectionObserver" in window)) {
-    items.forEach((el) => el.classList.add("in"));
+function resetTrace() {
+  clearInterval(traceTimer);
+  traceTimer = null;
+  traceState = -1;
+  renderTrace();
+}
+document.getElementById("trace-play").addEventListener("click", () => {
+  clearInterval(traceTimer);
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    traceState = 3;
+    renderTrace();
+    document.getElementById("announcement").textContent =
+      translations[language].traceComplete;
     return;
   }
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (!entry.isIntersecting) return;
-      const el = entry.target;
-      const group = el.parentElement ? Array.from(el.parentElement.children).indexOf(el) : 0;
-      el.style.transitionDelay = `${Math.min(group, 6) * 70}ms`;
-      el.classList.add("in");
-      observer.unobserve(el);
-      if (el.classList.contains("stats") || el.querySelector?.("[data-count]")) countUp(el);
-      if (el.classList.contains("hero-visual")) startTyping();
-    });
-  }, { threshold: 0.15, rootMargin: "0px 0px -40px" });
-  items.forEach((el) => observer.observe(el));
-  // 兜底：无论如何 2.5 秒后全部显示，避免异常环境下内容不可见
-  setTimeout(() => items.forEach((el) => el.classList.add("in")), 2500);
-}
-
-/* ---------- 数字增长 ---------- */
-function countUp(root) {
-  $$("[data-count]", root).forEach((el) => {
-    const target = Number(el.dataset.count || 0);
-    const suffix = el.dataset.suffix || "";
-    const duration = 1100;
-    const start = performance.now();
-    const tick = (now) => {
-      const p = Math.min(1, (now - start) / duration);
-      const eased = 1 - Math.pow(1 - p, 3);
-      el.textContent = Math.round(target * eased) + suffix;
-      if (p < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  });
-}
-
-/* ---------- 窗口里的打字效果 ---------- */
-function startTyping() {
-  const el = $(".typing");
-  if (!el || el.dataset.typed === "1") return;
-  el.dataset.typed = "1";
-  const text = el.dataset.text || "";
-  let i = 0;
-  const step = () => {
-    el.textContent = text.slice(0, ++i);
-    if (i < text.length) setTimeout(step, 42);
+  traceState = 0;
+  renderTrace();
+  traceTimer = setInterval(() => {
+    traceState++;
+    renderTrace();
+    if (traceState === 3) {
+      clearInterval(traceTimer);
+      traceTimer = null;
+      document.getElementById("announcement").textContent =
+        translations[language].traceComplete;
+    }
+  }, 850);
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && traceTimer) resetTrace();
+});
+new IntersectionObserver((entries) => {
+  if (!entries[0].isIntersecting && traceTimer) resetTrace();
+}).observe(document.querySelector(".terminal-window"));
+const options = { stream: true, thinking: false, web_search: false };
+function buildRequest() {
+  const body = {
+    model: "deepseek-web",
+    messages: [{ role: "user", content: "Hello, bridge." }],
+    ...options,
   };
-  setTimeout(step, 320);
+  const slash = String.fromCharCode(92);
+  document.getElementById("request-code").textContent =
+    `curl ${options.stream ? "--no-buffer " : ""}http://127.0.0.1:8317/v1/chat/completions ${slash}\n  -H 'Authorization: Bearer YOUR_LOCAL_API_KEY' ${slash}\n  -H 'Content-Type: application/json' ${slash}\n  -d '${JSON.stringify(body, null, 2)}'`;
+  document
+    .querySelectorAll("[data-option]")
+    .forEach((button) =>
+      button.setAttribute(
+        "aria-pressed",
+        String(options[button.dataset.option]),
+      ),
+    );
 }
-
-/* ---------- Tabs ---------- */
-function setupTabs() {
-  $$(".tab-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const name = btn.dataset.tab;
-      $$(".tab-btn").forEach((b) => {
-        const active = b === btn;
-        b.classList.toggle("active", active);
-        b.setAttribute("aria-selected", active ? "true" : "false");
+document.querySelectorAll("[data-option]").forEach((button) =>
+  button.addEventListener("click", () => {
+    options[button.dataset.option] = !options[button.dataset.option];
+    buildRequest();
+  }),
+);
+const sourceCommands = {
+  windows:
+    "git clone https://github.com/Jimmy-xuzimo/deepseek-local-bridge.git\ncd deepseek-local-bridge\n.\\start.bat",
+  unix: "git clone https://github.com/Jimmy-xuzimo/deepseek-local-bridge.git\ncd deepseek-local-bridge\n./start.sh",
+};
+function setupTabs(selector, attribute, apply) {
+  const buttons = [...document.querySelectorAll(selector)];
+  buttons.forEach((button) => {
+    button.addEventListener("click", () => {
+      buttons.forEach((el) => {
+        const active = el === button;
+        el.setAttribute("aria-selected", String(active));
+        el.tabIndex = active ? 0 : -1;
       });
-      $$(".tab-panel").forEach((p) => p.classList.toggle("active", p.dataset.panel === name));
+      apply(button.dataset[attribute]);
+    });
+    button.addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key))
+        return;
+      event.preventDefault();
+      let index = buttons.indexOf(button);
+      index =
+        event.key === "Home"
+          ? 0
+          : event.key === "End"
+            ? buttons.length - 1
+            : (index + (event.key === "ArrowRight" ? 1 : -1) + buttons.length) %
+              buttons.length;
+      buttons[index].click();
+      buttons[index].focus();
     });
   });
 }
-
-/* ---------- 复制 ---------- */
-function setupCopy() {
-  $$(".copy-btn").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const target = document.getElementById(btn.dataset.copyTarget);
-      if (!target) return;
-      const text = target.innerText;
-      try {
-        await navigator.clipboard.writeText(text);
-      } catch (e) {
-        const range = document.createRange();
-        range.selectNodeContents(target);
-        const sel = window.getSelection();
-        sel.removeAllRanges();
-        sel.addRange(range);
-        document.execCommand("copy");
-        sel.removeAllRanges();
-      }
-      btn.classList.add("done");
-      const label = $("span", btn);
-      const original = label ? label.textContent : "";
-      if (label) label.textContent = document.documentElement.lang === "en" ? "Copied" : "已复制";
-      setTimeout(() => {
-        btn.classList.remove("done");
-        if (label) label.textContent = original;
-      }, 1400);
-    });
-  });
-}
-
-/* ---------- 顶栏阴影 ---------- */
-function setupNav() {
-  const nav = $("#nav");
-  const onScroll = () => nav.classList.toggle("scrolled", window.scrollY > 8);
-  onScroll();
-  window.addEventListener("scroll", onScroll, { passive: true });
-}
-
-/* ---------- 初始化 ---------- */
-(function init() {
-  markDevice();
-  let theme = "light";
-  let lang = "zh";
+setupTabs("[data-client]", "client", (client) =>
+  document
+    .querySelectorAll(".client-panel")
+    .forEach((panel) => (panel.hidden = panel.id !== `panel-${client}`)),
+);
+setupTabs("[data-os]", "os", (os) => {
+  document.getElementById("source-code").textContent = sourceCommands[os];
+  document
+    .getElementById("source-panel")
+    .setAttribute("aria-labelledby", `source-${os}`);
+});
+async function copy(text, button) {
+  const original = button.textContent;
   try {
-    theme = localStorage.getItem("dsb-theme") || "light";
-    lang = localStorage.getItem("dsb-lang") || "zh";
-  } catch (e) { /* ignore */ }
-  applyTheme(theme, false);
-  applyLang(lang, false);
-
-  $("#theme-toggle")?.addEventListener("click", () => {
-    const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-    applyTheme(next);
+    await navigator.clipboard.writeText(text);
+    button.textContent = button.classList.contains("copy-icon")
+      ? "✓"
+      : translations[language].copied;
+    document.getElementById("announcement").textContent =
+      translations[language].copied;
+  } catch {
+    document.getElementById("announcement").textContent =
+      translations[language].copyFailed;
+    button.textContent = translations[language].failed;
+  }
+  setTimeout(() => {
+    button.textContent = button.dataset.i18n
+      ? translations[language][button.dataset.i18n]
+      : original;
+  }, 2000);
+}
+document
+  .querySelectorAll("[data-copy]")
+  .forEach((button) =>
+    button.addEventListener("click", () => copy(button.dataset.copy, button)),
+  );
+document
+  .getElementById("copy-request")
+  .addEventListener("click", (event) =>
+    copy(
+      document.getElementById("request-code").textContent,
+      event.currentTarget,
+    ),
+  );
+document
+  .getElementById("copy-source")
+  .addEventListener("click", (event) =>
+    copy(
+      document.getElementById("source-code").textContent,
+      event.currentTarget,
+    ),
+  );
+function applyLanguage() {
+  const t = translations[language];
+  document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    el.textContent = t[el.dataset.i18n];
+    if (t[el.dataset.i18n]?.includes("\n")) el.style.whiteSpace = "pre-line";
   });
-  $("#lang-toggle")?.addEventListener("click", () => {
-    const next = $("#lang-toggle").dataset.lang === "en" ? "zh" : "en";
-    applyLang(next);
-  });
-
-  setupNav();
-  setupReveal();
-  setupTabs();
-  setupCopy();
-})();
+  document
+    .querySelectorAll("[data-label]")
+    .forEach((el) => el.setAttribute("aria-label", t[el.dataset.label]));
+  const languageButton = document.getElementById("language");
+  languageButton.textContent = language === "zh" ? "EN" : "中文";
+  languageButton.setAttribute(
+    "aria-label",
+    language === "zh" ? "Switch to English" : "切换至中文",
+  );
+  document
+    .getElementById("menu")
+    .setAttribute(
+      "aria-label",
+      t[
+        document.getElementById("menu").getAttribute("aria-expanded") === "true"
+          ? "closeMenu"
+          : "openMenu"
+      ],
+    );
+  document.title = t.title;
+  document.querySelector('meta[name="description"]').content = t.description;
+  document.querySelector('meta[property="og:title"]').content = t.title;
+  document.querySelector('meta[property="og:description"]').content =
+    t.description;
+  document.querySelector('meta[property="og:locale"]').content =
+    language === "zh" ? "zh_CN" : "en_US";
+  document.querySelector('meta[property="og:locale:alternate"]').content =
+    language === "zh" ? "en_US" : "zh_CN";
+  applyTheme();
+  renderTrace();
+}
+document.getElementById("language").addEventListener("click", () => {
+  language = language === "zh" ? "en" : "zh";
+  save("dsb-lang", language);
+  applyLanguage();
+});
+document.getElementById("theme").addEventListener("click", () => {
+  preference = themeOrder[(themeOrder.indexOf(preference) + 1) % 3];
+  save("dsb-theme", preference);
+  applyTheme();
+});
+systemTheme.addEventListener("change", () => {
+  if (preference === "system") applyTheme();
+});
+const menu = document.getElementById("menu"),
+  mobileNav = document.getElementById("mobile-nav");
+function closeMenu() {
+  mobileNav.hidden = true;
+  menu.setAttribute("aria-expanded", "false");
+  menu.setAttribute("aria-label", translations[language].openMenu);
+}
+menu.addEventListener("click", () => {
+  const expanded = menu.getAttribute("aria-expanded") === "true";
+  mobileNav.hidden = expanded;
+  menu.setAttribute("aria-expanded", String(!expanded));
+  menu.setAttribute(
+    "aria-label",
+    translations[language][expanded ? "openMenu" : "closeMenu"],
+  );
+});
+mobileNav.addEventListener("click", (event) => {
+  const anchor = event.target.closest("a");
+  if (!anchor) return;
+  closeMenu();
+  if (anchor.getAttribute("href").startsWith("#")) {
+    const section = document.querySelector(anchor.getAttribute("href"));
+    section.tabIndex = -1;
+    section.focus({ preventScroll: true });
+  }
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !mobileNav.hidden) {
+    closeMenu();
+    menu.focus();
+  }
+});
+document.addEventListener("click", (event) => {
+  if (!event.target.closest(".header")) closeMenu();
+});
+matchMedia("(min-width: 951px)").addEventListener("change", (event) => {
+  if (event.matches) {
+    const restore = mobileNav.contains(document.activeElement);
+    closeMenu();
+    if (restore) document.querySelector(".desktop-nav a").focus();
+  }
+});
+applyLanguage();
+buildRequest();

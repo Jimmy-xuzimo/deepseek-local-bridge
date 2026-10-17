@@ -1,329 +1,832 @@
-<!DOCTYPE html>
-<html lang="zh-CN" data-theme="light">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" id="theme-color" content="#f6f8fd" />
-<meta name="format-detection" content="telephone=no" />
-<title>DeepSeek Local Bridge · 把 DeepSeek 网页版变成本机 API</title>
-<meta name="description" content="把 DeepSeek 网页版桥接成本机 OpenAI 兼容 API：一次登录，Chatbox / Codex CLI 即可使用，支持流式、深度思考、联网搜索、附件与工具调用。" />
-<meta name="color-scheme" content="light dark" />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f6bff'/%3E%3Cpath d='M9 19c0-4 3-7 7-7s7 3 7 7' stroke='white' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='13' cy='17.5' r='1.4' fill='white'/%3E%3Ccircle cx='19' cy='17.5' r='1.4' fill='white'/%3E%3C/svg%3E" />
-<link rel="stylesheet" href="assets/site.css" />
-<script>document.documentElement.classList.add("js");</script>
-</head>
-<body>
-
-<svg class="sprite" aria-hidden="true" focusable="false">
-  <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 3v6M15 3v6M6 9h12v3a6 6 0 0 1-6 6 6 6 0 0 1-6-6V9ZM12 18v3"/></symbol>
-  <symbol id="i-brain" viewBox="0 0 24 24"><path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-1 5.8V15a3 3 0 0 0 4 2.8V20M15 4a3 3 0 0 1 3 3 3 3 0 0 1 1 5.8V15a3 3 0 0 1-4 2.8V20M12 4v16"/></symbol>
-  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 3 2.5 15 0 18M12 3c-2.5 3-2.5 15 0 18"/></symbol>
-  <symbol id="i-paperclip" viewBox="0 0 24 24"><path d="M21 12.5 12.6 21a5 5 0 0 1-7-7l8-8a3.5 3.5 0 1 1 5 5l-8 8a2 2 0 0 1-2.8-2.8l7.4-7.4"/></symbol>
-  <symbol id="i-tool" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 1 5 5L21 21H10L6 17l8-8a4 4 0 0 1 .7-2.7Z"/><path d="M6 12 2 16l4 4 4-4"/></symbol>
-  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5ZM3 13l9 5 9-5M3 17.5 12 22l9-4.5"/></symbol>
-  <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2.5 8.5C8 4 16 4 21.5 8.5M5.5 12.5C9.5 9.3 14.5 9.3 18.5 12.5M8.5 16.4c2-1.6 5-1.6 7 0M12 20h.01"/></symbol>
-  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 6v6c0 4.4 3 7.6 7 9 4-1.4 7-4.6 7-9V6l-7-3Z"/><path d="M9 12.5l2 2 4-4.5"/></symbol>
-  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></symbol>
-  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7.5 10.5 12 15l4.5-4.5M4 20h16"/></symbol>
-  <symbol id="i-github" viewBox="0 0 24 24"><path d="M9 19c-4 1.5-4-2.5-6-3m12 6v-3.9a3.4 3.4 0 0 0-.9-2.6c3-.3 6.9-1.4 6.9-6.8A5.3 5.3 0 0 0 18.6 4 5 5 0 0 0 18.4 1S17.2.6 15 2.4a13 13 0 0 0-6 0C6.8.6 5.6 1 5.6 1A5 5 0 0 0 5.4 4a5.3 5.3 0 0 0-1.4 3.7c0 5.4 3.9 6.5 6.9 6.8A3.4 3.4 0 0 0 9 17.1V21"/></symbol>
-  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 5.5A2.5 2.5 0 0 0 12.5 3H6.5A2.5 2.5 0 0 0 4 5.5v6A2.5 2.5 0 0 0 6.5 14"/></symbol>
-  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></symbol>
-  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/></symbol>
-  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></symbol>
-  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
-</svg>
-
-<header class="nav" id="nav">
-  <div class="nav-inner">
-    <a class="logo" href="#top">
-      <span class="logo-mark">
-        <svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true">
-          <rect width="32" height="32" rx="9" fill="url(#lg)"/>
-          <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#22d3ee"/>
-          </linearGradient></defs>
-          <path d="M9 19.5c0-4 3-7.2 7-7.2s7 3.2 7 7.2" stroke="#08111f" stroke-width="2" fill="none" stroke-linecap="round"/>
-          <circle cx="13.2" cy="17.6" r="1.5" fill="#08111f"/><circle cx="18.8" cy="17.6" r="1.5" fill="#08111f"/>
-        </svg>
-      </span>
-      <span class="logo-text">DeepSeek <em>Local Bridge</em></span>
-    </a>
-
-    <nav class="nav-links">
-      <a href="#features" data-i18n="nav.features">特性</a>
-      <a href="#how" data-i18n="nav.how">原理</a>
-      <a href="#clients" data-i18n="nav.clients">接入</a>
-      <a href="#download" data-i18n="nav.download">下载</a>
-    </nav>
-
-    <div class="nav-tools">
-      <button class="toggle lang-toggle" id="lang-toggle" data-lang="zh" aria-label="切换语言 / Switch language">
-        <span class="pill" id="lang-pill" aria-hidden="true"></span>
-        <span class="seg" data-lang="zh">中文</span>
-        <span class="seg" data-lang="en">EN</span>
-      </button>
-      <button class="toggle theme-toggle" id="theme-toggle" aria-label="切换深浅色 / Toggle theme" aria-pressed="false">
-        <span class="pill" id="theme-pill" aria-hidden="true"></span>
-        <span class="seg" data-seg="light" aria-hidden="true"><svg class="ic"><use href="#i-sun"/></svg></span>
-        <span class="seg" data-seg="dark" aria-hidden="true"><svg class="ic"><use href="#i-moon"/></svg></span>
-      </button>
-    </div>
-  </div>
-</header>
-
-<main id="top">
-  <!-- Hero -->
-  <section class="hero">
-    <div class="blob b1" aria-hidden="true"></div>
-    <div class="blob b2" aria-hidden="true"></div>
-    <div class="wrap hero-grid">
-      <div class="hero-copy">
-        <span class="badge reveal" data-i18n="hero.badge">非官方 · MIT 开源 · 数据不出本机</span>
-        <h1 class="reveal" data-i18n-html="hero.title">把 DeepSeek 网页版<br/><span class="grad">变成本机可用的 API</span></h1>
-        <p class="lead reveal" data-i18n="hero.lead">
-          登录一次，Chatbox、Codex CLI 等客户端就能通过标准 OpenAI 接口调用 DeepSeek 网页版：流式输出、深度思考、联网搜索、附件与工具调用全都保留。
-        </p>
-        <div class="cta reveal">
-          <a class="btn btn-primary" id="cta-download" href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge/releases/latest" target="_blank" rel="noopener">
-            <svg class="ic"><use href="#i-download"/></svg>
-            <span id="cta-label" data-i18n="hero.cta1">下载便携包</span>
-          </a>
-          <a class="btn btn-ghost" href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge" target="_blank" rel="noopener">
-            <svg class="ic"><use href="#i-github"/></svg>
-            <span data-i18n="hero.cta2">查看源码</span>
-          </a>
-        </div>
-        <p class="meta reveal" data-i18n="hero.meta">Windows / macOS / Linux · x64 与 ARM64 · 一条命令启动</p>
-        <p class="meta mobile-hint reveal" id="mobile-hint" hidden></p>
-
-        <ul class="stats reveal">
-          <li><b data-count="6">0</b><span data-i18n="stats.platforms">平台便携包</span></li>
-          <li><b data-count="74">0</b><span data-i18n="stats.tests">单元测试</span></li>
-          <li><b data-count="12">0</b><span data-i18n="stats.ci">CI 任务全绿</span></li>
-          <li><b data-count="100" data-suffix="%">0</b><span data-i18n="stats.local">本地运行</span></li>
-        </ul>
-      </div>
-
-      <!-- 产品界面示意（纯 CSS/SVG，无真实数据） -->
-      <div class="hero-visual reveal">
-        <div class="window" id="demo-window">
-          <div class="window-bar">
-            <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
-            <span class="url">127.0.0.1:8317/admin</span>
-          </div>
-          <div class="window-body">
-            <div class="panel">
-              <div class="panel-head">
-                <span class="chip ok" data-i18n="demo.ready">已就绪</span>
-                <span class="panel-title" data-i18n="demo.title">DeepSeek Local Bridge</span>
-              </div>
-              <div class="panel-row">
-                <span class="label" data-i18n="demo.endpoint">本机地址</span>
-                <code class="typing" data-text="http://127.0.0.1:8317/v1"></code>
-              </div>
-              <div class="panel-row">
-                <span class="label" data-i18n="demo.lan">局域网</span>
-                <code>http://192.168.1.100:8317/v1</code>
-              </div>
-              <div class="panel-switches">
-                <span class="sw on"><i></i><span data-i18n="demo.think">深度思考</span></span>
-                <span class="sw on"><i></i><span data-i18n="demo.search">联网搜索</span></span>
-                <span class="sw"><i></i><span data-i18n="demo.cors">CORS</span></span>
-              </div>
-            </div>
-            <div class="flow">
-              <span class="node" data-i18n="demo.client">客户端</span>
-              <svg class="arrow" viewBox="0 0 40 12" aria-hidden="true"><path d="M0 6h32M28 1.5 34 6l-6 4.5"/></svg>
-              <span class="node accent" data-i18n="demo.bridge">本机服务</span>
-              <svg class="arrow" viewBox="0 0 40 12" aria-hidden="true"><path d="M0 6h32M28 1.5 34 6l-6 4.5"/></svg>
-              <span class="node" data-i18n="demo.web">DeepSeek 网页</span>
-            </div>
-          </div>
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>DeepSeek Local Bridge — 连接网页，接入你的工作流。</title>
+    <meta
+      name="description"
+      content="将 DeepSeek 网页版桥接为本机 OpenAI 兼容 API。支持流式输出、深度思考、联网搜索、附件与工具调用，提供 Windows、macOS、Linux 便携包。非官方项目。"
+    />
+    <link
+      rel="canonical"
+      href="https://jimmy-xuzimo.github.io/deepseek-local-bridge/"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta
+      property="og:title"
+      content="DeepSeek Local Bridge — Connect the web to your workflow."
+    />
+    <meta
+      property="og:description"
+      content="DeepSeek 网页版 → 本机 OpenAI 兼容 API。An unofficial, open-source bridge for personal learning."
+    />
+    <meta
+      property="og:url"
+      content="https://jimmy-xuzimo.github.io/deepseek-local-bridge/"
+    />
+    <meta
+      property="og:image"
+      content="https://jimmy-xuzimo.github.io/deepseek-local-bridge/assets/social.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="DeepSeek Local Bridge — Web to API. Your tools, connected."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#0c1220" />
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <script src="assets/preferences.js"></script>
+    <link rel="stylesheet" href="assets/site.css" />
+    <script src="assets/site.js" defer></script>
+  </head>
+  <body id="top">
+    <a class="skip" href="#main" data-i18n="skip">跳转到内容</a>
+    <header class="header">
+      <div class="container nav-wrap">
+        <a class="brand" href="#top" aria-label="DeepSeek Local Bridge"
+          ><svg viewBox="0 0 36 36" aria-hidden="true">
+            <rect x="1" y="1" width="34" height="34" rx="10" />
+            <path
+              d="M9 24V14m18 10V14M9 21c0-12 18-12 18 0M6 24h24M14 24v-7m8 7v-7"
+            /></svg
+          ><span>DeepSeek<span class="brand-sub">Local Bridge</span></span></a
+        >
+        <nav class="desktop-nav" aria-label="主导航" data-label="navigation">
+          <a href="#features" data-i18n="navFeatures">功能</a
+          ><a href="#how" data-i18n="navHow">工作原理</a
+          ><a href="#clients" data-i18n="navClients">客户端接入</a
+          ><a href="#download" data-i18n="navDownload">下载</a>
+        </nav>
+        <div class="nav-actions">
+          <button id="language" class="language" aria-label="Switch to English">
+            EN</button
+          ><button id="theme" class="theme-button" aria-label="主题：跟随系统">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="8" />
+              <path d="M12 4a8 8 0 0 1 0 16Z" class="theme-fill" />
+            </svg></button
+          ><a
+            class="github-nav"
+            href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge"
+            >GitHub ↗</a
+          ><button
+            id="menu"
+            class="menu-button"
+            aria-expanded="false"
+            aria-controls="mobile-nav"
+            aria-label="打开导航"
+            data-label="openMenu"
+          >
+            <span></span><span></span>
+          </button>
         </div>
       </div>
-    </div>
-  </section>
-
-  <!-- Features -->
-  <section class="section" id="features">
-    <div class="wrap">
-      <header class="sec-head reveal">
-        <h2 data-i18n="features.title">能力一览</h2>
-        <p data-i18n="features.lead">标准接口 + 网页版能力全覆盖，客户端几乎不用改配置。</p>
-      </header>
-      <div class="cards">
-        <article class="card reveal"><span class="card-ic"><svg class="ic"><use href="#i-plug"/></svg></span>
-          <h3 data-i18n="f1.t">OpenAI 兼容</h3><p data-i18n="f1.d">提供 /v1/chat/completions（SSE 流式）、/v1/models 与 /v1/files，任何兼容客户端直接填地址即可。</p></article>
-        <article class="card reveal"><span class="card-ic"><svg class="ic"><use href="#i-brain"/></svg></span>
-          <h3 data-i18n="f2.t">深度思考</h3><p data-i18n="f2.d">网页版思考过程通过 reasoning_content 回传，Chatbox 里可以直接查看模型的推理链。</p></article>
-        <article class="card reveal"><span class="card-ic"><svg class="ic"><use href="#i-globe"/></svg></span>
-          <h3 data-i18n="f3.t">联网搜索</h3><p data-i18n="f3.d">一键开启网页版联网搜索，回答里保留网页给出的参考链接。</p></article>
-        <article class="card reveal"><span class="card-ic"><svg class="ic"><use href="#i-paperclip"/></svg></span>
-          <h3 data-i18n="f4.t">附件直传</h3><p data-i18n="f4.d">图片、PDF、TXT/MD、DOCX 都能丢给网页版解析，接口层兼容图片与文件两种写法。</p></article>
-        <article class="card reveal"><span class="card-ic"><svg class="ic"><use href="#i-tool"/></svg></span>
-          <h3 data-i18n="f5.t">工具调用</h3><p data-i18n="f5.d">把 function calling 桥接到网页版，配合 CC Switch 可让 Codex CLI 完成读写代码、跑测试的完整闭环。</p></article>
-        <article class="card reveal"><span class="card-ic"><svg class="ic"><use href="#i-layers"/></svg></span>
-          <h3 data-i18n="f6.t">多会话映射</h3><p data-i18n="f6.d">客户端每个对话对应一个网页对话；新建会新建，切回旧对话会切回原来的网页对话，上下文不丢。</p></article>
-        <article class="card reveal"><span class="card-ic"><svg class="ic"><use href="#i-wifi"/></svg></span>
-          <h3 data-i18n="f7.t">局域网可用</h3><p data-i18n="f7.d">开启“在网络中提供服务”，手机、平板用 192.168 地址加同一个 API Key 即可接入，CORS 随时开关。</p></article>
-        <article class="card reveal"><span class="card-ic"><svg class="ic"><use href="#i-shield"/></svg></span>
-          <h3 data-i18n="f8.t">稳定与可控</h3><p data-i18n="f8.d">串行队列、请求取消、网页限流识别（429）、请求最小间隔、页面诊断与选择器覆盖，出问题能自查。</p></article>
-        <article class="card reveal"><span class="card-ic"><svg class="ic"><use href="#i-monitor"/></svg></span>
-          <h3 data-i18n="f9.t">跨平台</h3><p data-i18n="f9.d">Windows / macOS / Linux，x64 与 ARM64 都有构建；一键脚本、便携包与 CI 三件套齐全。</p></article>
-      </div>
-    </div>
-  </section>
-
-  <!-- How it works -->
-  <section class="section alt" id="how">
-    <div class="wrap">
-      <header class="sec-head reveal">
-        <h2 data-i18n="how.title">三步开始</h2>
-        <p data-i18n="how.lead">不需要官方 API Key，用你已有的网页版账号即可。</p>
-      </header>
-      <ol class="steps">
-        <li class="reveal"><span class="num">1</span>
-          <h3 data-i18n="how.s1t">启动并登录一次</h3>
-          <p data-i18n="how.s1d">运行 start.bat / ./start.sh，弹出专用浏览器窗口登录 DeepSeek；登录状态长期保留，可以最小化窗口。</p></li>
-        <li class="reveal"><span class="num">2</span>
-          <h3 data-i18n="how.s2t">本地服务就绪</h3>
-          <p data-i18n="how.s2d">设置页自动打开，显示 127.0.0.1:8317、API Key、思考/联网开关与局域网地址，还带一键自测。</p></li>
-        <li class="reveal"><span class="num">3</span>
-          <h3 data-i18n="how.s3t">客户端接入</h3>
-          <p data-i18n="how.s3d">Chatbox 填地址与 Key 就能聊；Codex CLI 通过 CC Switch 的路由模式接入，工具调用自动桥接。</p></li>
-      </ol>
-    </div>
-  </section>
-
-  <!-- Clients -->
-  <section class="section" id="clients">
-    <div class="wrap">
-      <header class="sec-head reveal">
-        <h2 data-i18n="clients.title">客户端接入</h2>
-        <p data-i18n="clients.lead">复制粘贴即可，配置项一共三个：地址、Key、模型名。</p>
-      </header>
-      <div class="tabs reveal">
-        <div class="tab-btns" role="tablist">
-          <button class="tab-btn active" role="tab" aria-selected="true" data-tab="chatbox">Chatbox</button>
-          <button class="tab-btn" role="tab" aria-selected="false" data-tab="codex">Codex CLI</button>
-          <button class="tab-btn" role="tab" aria-selected="false" data-tab="curl">curl / SDK</button>
+      <nav
+        id="mobile-nav"
+        class="container mobile-nav"
+        hidden
+        aria-label="移动导航"
+        data-label="mobileNavigation"
+      >
+        <a href="#features" data-i18n="navFeatures">功能</a
+        ><a href="#how" data-i18n="navHow">工作原理</a
+        ><a href="#clients" data-i18n="navClients">客户端接入</a
+        ><a href="#download" data-i18n="navDownload">下载</a
+        ><a href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge"
+          >GitHub ↗</a
+        >
+      </nav>
+    </header>
+    <main id="main">
+      <section class="hero container" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <div class="eyebrow">
+            <span class="status-dot"></span
+            ><span data-i18n="heroTag">非官方 · MIT 开源 · 本地桥接</span>
+          </div>
+          <h1 id="hero-title">
+            <span data-i18n="hero1">连接网页，</span><br /><span
+              class="accent"
+              data-i18n="hero2"
+              >接入你的工作流。</span
+            >
+          </h1>
+          <p class="hero-desc" data-i18n="heroDesc">
+            将 DeepSeek 网页版转换为本机可用的 OpenAI 兼容
+            API。在专用浏览器中登录，继续使用你熟悉的客户端。
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#download"
+              ><span data-i18n="getBridge">获取 Bridge</span> ↓</a
+            ><a
+              class="button secondary"
+              href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge"
+              ><span data-i18n="viewSource">查看源代码</span> ↗</a
+            >
+          </div>
+          <p class="hero-platforms mono">
+            WINDOWS / macOS / LINUX <span>· x64 + ARM64</span>
+          </p>
+          <p class="hero-boundary" data-i18n="heroBoundary">
+            桥接服务在本机运行，模型推理仍由 DeepSeek 网页服务提供。
+          </p>
         </div>
-        <div class="tab-panels">
-          <div class="tab-panel active" data-panel="chatbox">
-            <div class="code-block">
-              <div class="code-head"><span data-i18n="clients.chatboxHead">Chatbox · OpenAI API 兼容</span><button class="copy-btn" data-copy-target="code-chatbox" aria-label="copy"><svg class="ic"><use href="#i-copy"/></svg><span data-i18n="clients.copy">复制</span></button></div>
-              <pre id="code-chatbox" data-i18n-html="clients.chatboxSnippet"><span class="c-key">API 域名</span>  http://127.0.0.1:8317
-<span class="c-key">API Key</span>   在设置页「客户端接入」一键复制
-<span class="c-key">模型名称</span>  deepseek-web</pre>
+        <div class="hero-visual">
+          <div class="terminal-window">
+            <div class="window-bar">
+              <span class="window-dots" aria-hidden="true"
+                ><i></i><i></i><i></i></span
+              ><span class="mono">bridge / request trace</span
+              ><span class="demo-chip" data-i18n="illustration">交互示意</span>
             </div>
-            <p class="tip" data-i18n="clients.chatboxTip">Chatbox 会自动补 /v1；连不上时改成 http://127.0.0.1:8317/v1 再试。</p>
+            <div class="terminal-body">
+              <div class="request-label">
+                <span class="method">POST</span
+                ><span class="mono">/v1/chat/completions</span>
+              </div>
+              <pre
+                class="hero-code"
+                aria-label="请求示例"
+                data-label="sampleRequest"
+              ><code><span class="code-muted">{</span>
+  <span class="code-key">"model"</span>: <span class="code-string">"deepseek-web"</span>,
+  <span class="code-key">"stream"</span>: <span class="code-value">true</span>,
+  <span class="code-key">"messages"</span>: [{
+    <span class="code-key">"role"</span>: <span class="code-string">"user"</span>,
+    <span class="code-key">"content"</span>: <span class="code-string">"Hello, bridge."</span>
+  }]
+<span class="code-muted">}</span></code></pre>
+              <div
+                class="trace-route"
+                aria-label="客户端经过本机桥接访问 DeepSeek 网页"
+                data-label="routeLabel"
+              >
+                <span data-route="0"
+                  ><i></i><span data-i18n="routeClient">客户端</span></span
+                ><span class="route-line" aria-hidden="true"></span
+                ><span data-route="1"
+                  ><i></i><span data-i18n="routeBridge">本机桥接</span></span
+                ><span class="route-line" aria-hidden="true"></span
+                ><span data-route="2"
+                  ><i></i><span data-i18n="routeWeb">DeepSeek 网页</span></span
+                >
+              </div>
+              <div class="trace-result">
+                <span class="mono trace-prefix">↳</span
+                ><span id="trace-text" data-i18n="traceIdle"
+                  >运行一次示意，看看请求如何流转。</span
+                ><span class="trace-caret" aria-hidden="true"></span>
+              </div>
+              <div class="trace-footer">
+                <span class="mono" id="trace-stage">READY / DEMO</span
+                ><button class="trace-play" id="trace-play">
+                  <span data-i18n="runDemo">运行示意</span> ↗
+                </button>
+              </div>
+            </div>
           </div>
-          <div class="tab-panel" data-panel="codex">
-            <div class="code-block">
-              <div class="code-head"><span data-i18n="clients.codexHead">CC Switch · Routing</span><button class="copy-btn" data-copy-target="code-codex" aria-label="copy"><svg class="ic"><use href="#i-copy"/></svg><span data-i18n="clients.copy">复制</span></button></div>
-              <pre id="code-codex" data-i18n-html="clients.codexSnippet"><span class="c-key">API Request URL</span>  http://127.0.0.1:8317/v1
-<span class="c-key">Default Model</span>    deepseek-web
-<span class="c-key">Upstream Format</span>  OpenAI Chat Completions（需要路由）
-<span class="c-key">Routing</span>          打开总开关并启用 Codex，然后重启终端</pre>
-            </div>
-            <p class="tip" data-i18n="clients.codexTip">Codex 用 Responses 协议，交给 CC Switch 转成 Chat Completions 再进本服务。</p>
-          </div>
-          <div class="tab-panel" data-panel="curl">
-            <div class="code-block">
-              <div class="code-head"><span>OpenAI SDK / curl</span><button class="copy-btn" data-copy-target="code-curl" aria-label="copy"><svg class="ic"><use href="#i-copy"/></svg><span data-i18n="clients.copy">复制</span></button></div>
-              <pre id="code-curl">curl http://127.0.0.1:8317/v1/chat/completions \
-  -H <span class="c-str">"Authorization: Bearer $DSB_KEY"</span> \
-  -H <span class="c-str">"Content-Type: application/json"</span> \
-  -d <span class="c-str">'{"model":"deepseek-web","stream":true,
-       "messages":[{"role":"user","content":"你好"}]}'</span></pre>
-            </div>
-            <p class="tip" data-i18n="clients.curlTip">Python 里把 base_url 设为 http://127.0.0.1:8317/v1 即可直接复用 OpenAI SDK。</p>
+          <div class="visual-caption">
+            <span class="caption-line"></span
+            ><span data-i18n="demoNote"
+              >浏览器内的流程示意，不访问本机服务或真实账号。</span
+            >
           </div>
         </div>
+      </section>
+      <div class="container compatibility">
+        <span class="mono" data-i18n="compatibleLabel">接入熟悉的工具</span>
+        <div>
+          <strong>Chatbox</strong><span class="plus">+</span
+          ><strong>CC Switch <span class="compat-sub">→ Codex CLI</span></strong
+          ><span class="plus">+</span
+          ><strong>cURL <span class="compat-sub">/ HTTP</span></strong>
+        </div>
+        <a class="text-link" href="#clients"
+          ><span data-i18n="connectionGuide">查看接入方式</span> ↗</a
+        >
       </div>
-    </div>
-  </section>
-
-  <!-- Download -->
-  <section class="section alt" id="download">
-    <div class="wrap">
-      <header class="sec-head reveal">
-        <h2 data-i18n="dl.title">下载便携包</h2>
-        <p data-i18n="dl.lead">自带 Python 运行时，解压即用；也可以从源码一键启动。</p>
-      </header>
-      <div class="downloads">
-        <a class="dl-card reveal" href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge/releases/latest" target="_blank" rel="noopener">
-          <span class="os">Windows</span><span class="arch">x64</span><span class="size">52.6 MB</span></a>
-        <a class="dl-card reveal" href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge/releases/latest" target="_blank" rel="noopener">
-          <span class="os">Windows</span><span class="arch">ARM64</span><span class="size">48.4 MB</span></a>
-        <a class="dl-card reveal" href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge/releases/latest" target="_blank" rel="noopener">
-          <span class="os">macOS</span><span class="arch">Apple Silicon</span><span class="size">60.2 MB</span></a>
-        <a class="dl-card reveal" href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge/releases/latest" target="_blank" rel="noopener">
-          <span class="os">macOS</span><span class="arch">Intel</span><span class="size">62.6 MB</span></a>
-        <a class="dl-card reveal" href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge/releases/latest" target="_blank" rel="noopener">
-          <span class="os">Linux</span><span class="arch">x64</span><span class="size">75.4 MB</span></a>
-        <a class="dl-card reveal" href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge/releases/latest" target="_blank" rel="noopener">
-          <span class="os">Linux</span><span class="arch">ARM64</span><span class="size">74.1 MB</span></a>
-      </div>
-
-      <div class="quickstart reveal">
-        <div class="qs-col">
-          <h3 data-i18n="qs.title">从源码启动</h3>
-          <div class="code-block small">
-            <div class="code-head"><span>Windows</span><button class="copy-btn" data-copy-target="code-win" aria-label="copy"><svg class="ic"><use href="#i-copy"/></svg></button></div>
-            <pre id="code-win">git clone https://github.com/Jimmy-xuzimo/deepseek-local-bridge
+      <section id="features" class="section container">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow mono">
+              <span class="accent">01 /</span> BRIDGE THE GAP
+            </p>
+            <h2 data-i18n="featuresTitle">保留能力，连接更多可能。</h2>
+          </div>
+          <p data-i18n="featuresDesc">
+            围绕网页版的真实能力，\n把常用交互带到兼容的客户端。
+          </p>
+        </div>
+        <div class="feature-grid">
+          <article class="feature feature-large">
+            <div class="feature-top">
+              <span class="feature-icon" aria-hidden="true">⌁</span
+              ><span class="mono">STREAM / THINK / SEARCH</span>
+            </div>
+            <h3 data-i18n="streamTitle">从一个问题，到持续的回答。</h3>
+            <p data-i18n="streamDesc">
+              支持流式输出、深度思考与联网搜索。在本地设置页统一控制，也能通过请求级字段覆盖思考与搜索开关。
+            </p>
+            <div class="stream-art" aria-hidden="true">
+              <span class="stream-line"></span><span class="stream-line"></span
+              ><span class="stream-line"></span
+              ><span class="stream-square"></span>
+            </div>
+          </article>
+          <article class="feature">
+            <div class="feature-top">
+              <span class="feature-icon" aria-hidden="true">↗</span
+              ><span class="mono">TOOL CALLS</span>
+            </div>
+            <h3 data-i18n="toolsTitle">让工具，加入对话。</h3>
+            <p data-i18n="toolsDesc">
+              通过提示词协议桥接 function calling，并将有效结果转换为标准
+              tool_calls，供支持的客户端继续执行。
+            </p>
+            <span class="feature-foot" data-i18n="toolsFoot"
+              >工具请求缓冲完整回答后返回；解析失败回退文本。</span
+            >
+          </article>
+          <article class="feature">
+            <div class="feature-top">
+              <span class="feature-icon" aria-hidden="true">⌘</span
+              ><span class="mono">FILES & CONTEXT</span>
+            </div>
+            <h3 data-i18n="filesTitle">不止文字，也保留上下文。</h3>
+            <p data-i18n="filesDesc">
+              支持图片、PDF、TXT、Markdown 与 DOCX
+              附件。持久化会话映射，让客户端旧对话对应回原来的网页会话。
+            </p>
+            <div class="file-tags" aria-hidden="true">
+              <span>IMG</span><span>PDF</span><span>MD</span><span>DOCX</span>
+            </div>
+          </article>
+          <article class="feature feature-large">
+            <div class="feature-top">
+              <span class="feature-icon" aria-hidden="true">≋</span
+              ><span class="mono">CONTROL & QUEUE</span>
+            </div>
+            <h3 data-i18n="controlTitle">每一次请求，有序抵达。</h3>
+            <p data-i18n="controlDesc">
+              一个账号串行处理，后续请求进入队列。提供取消、超时、限流提示与最小请求间隔设置，登录、诊断和日志集中在本机管理页。
+            </p>
+            <div class="queue-art" aria-hidden="true">
+              <span>01 <i></i></span><span>02</span><span>03</span
+              ><span>04</span><small>ONE AT A TIME.</small>
+            </div>
+          </article>
+        </div>
+      </section>
+      <section id="how" class="how-section section">
+        <div class="container">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow mono">
+                <span class="accent">02 /</span> UNDER THE HOOD
+              </p>
+              <h2 data-i18n="howTitle">一座桥，两端各司其职。</h2>
+            </div>
+            <a
+              class="text-link"
+              href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge/blob/main/docs/ARCHITECTURE.md"
+              ><span data-i18n="architecture">阅读架构说明</span> ↗</a
+            >
+          </div>
+          <div class="architecture">
+            <article>
+              <span class="architecture-number mono">01 / CLIENT</span>
+              <div class="architecture-icon" aria-hidden="true">⌘</div>
+              <h3 data-i18n="archClientTitle">你的客户端</h3>
+              <p data-i18n="archClientDesc">
+                发送 Chat Completions 请求，使用本地 API Key 连接桥接服务。
+              </p>
+              <span class="architecture-detail mono"
+                >Chatbox · cURL · CC Switch</span
+              >
+            </article>
+            <div class="arch-arrow" aria-hidden="true">→</div>
+            <article class="bridge-node">
+              <span class="architecture-number mono">02 / LOCAL</span>
+              <div class="architecture-icon" aria-hidden="true">⇌</div>
+              <h3>Local Bridge</h3>
+              <p data-i18n="archBridgeDesc">
+                FastAPI 接口、串行队列、会话映射，再交给 Playwright
+                操作专用浏览器。
+              </p>
+              <span class="architecture-detail mono"
+                >127.0.0.1:8317 / Playwright</span
+              >
+            </article>
+            <div class="arch-arrow" aria-hidden="true">→</div>
+            <article>
+              <span class="architecture-number mono">03 / WEB SERVICE</span>
+              <div class="architecture-icon" aria-hidden="true">◎</div>
+              <h3 data-i18n="archWebTitle">DeepSeek 网页服务</h3>
+              <p data-i18n="archWebDesc">
+                使用你登录的网页账号处理消息，再由桥接服务将结果转为兼容响应。
+              </p>
+              <span class="architecture-detail mono">chat.deepseek.com</span>
+            </article>
+          </div>
+          <div class="boundary-note">
+            <span class="mono accent">i</span>
+            <p data-i18n="howNote">
+              这是浏览器自动化与协议适配，不是离线模型。消息与附件会提交到
+              DeepSeek 服务；本地保存浏览器配置、附件、日志与会话映射。
+            </p>
+          </div>
+        </div>
+      </section>
+      <section id="clients" class="section container">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow mono">
+              <span class="accent">03 /</span> FIT YOUR WORKFLOW
+            </p>
+            <h2 data-i18n="clientsTitle">熟悉的工具，新的连接方式。</h2>
+          </div>
+          <p data-i18n="clientsDesc">
+            启动服务并在专用浏览器登录后，\n从本机设置页复制 API Key，即可接入。
+          </p>
+        </div>
+        <div class="client-workspace">
+          <div
+            class="client-tabs"
+            role="tablist"
+            aria-label="客户端配置"
+            data-label="clientTabs"
+          >
+            <button
+              id="tab-chatbox"
+              role="tab"
+              aria-selected="true"
+              aria-controls="panel-chatbox"
+              tabindex="0"
+              data-client="chatbox"
+            >
+              Chatbox</button
+            ><button
+              id="tab-codex"
+              role="tab"
+              aria-selected="false"
+              aria-controls="panel-codex"
+              tabindex="-1"
+              data-client="codex"
+            >
+              CC Switch + Codex CLI</button
+            ><button
+              id="tab-curl"
+              role="tab"
+              aria-selected="false"
+              aria-controls="panel-curl"
+              tabindex="-1"
+              data-client="curl"
+            >
+              cURL
+            </button>
+          </div>
+          <div
+            id="panel-chatbox"
+            role="tabpanel"
+            aria-labelledby="tab-chatbox"
+            tabindex="0"
+            class="client-panel"
+          >
+            <div class="client-info">
+              <span class="panel-kicker mono">OPENAI-COMPATIBLE PROVIDER</span>
+              <h3 data-i18n="chatboxTitle">三项配置，接好下一次对话。</h3>
+              <p data-i18n="chatboxDesc">
+                在 Chatbox 添加自定义供应商，选择 OpenAI API
+                兼容类型，填写地址、API Key 与模型。
+              </p>
+              <a
+                class="text-link"
+                href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge/blob/main/docs/CLIENTS.md#chatbox"
+                ><span data-i18n="fullGuide">完整接入指南</span> ↗</a
+              >
+            </div>
+            <div class="connection-fields">
+              <div>
+                <span data-i18n="apiAddress">API 域名</span
+                ><code>http://127.0.0.1:8317</code
+                ><button
+                  class="copy-icon"
+                  data-copy="http://127.0.0.1:8317"
+                  aria-label="复制 API 地址"
+                  data-label="copyAddress"
+                >
+                  ⧉
+                </button>
+              </div>
+              <div>
+                <span>API Key</span
+                ><span class="field-value" data-i18n="keyLocal"
+                  >从本机设置页复制</span
+                >
+              </div>
+              <div>
+                <span data-i18n="model">模型</span><code>deepseek-web</code
+                ><button
+                  class="copy-icon"
+                  data-copy="deepseek-web"
+                  aria-label="复制模型名"
+                  data-label="copyModel"
+                >
+                  ⧉
+                </button>
+              </div>
+              <p data-i18n="chatboxNote">
+                Chatbox 通常会自动补 /v1；如遇 404 或连接失败，再改用完整 /v1
+                地址。
+              </p>
+            </div>
+          </div>
+          <div
+            id="panel-codex"
+            role="tabpanel"
+            aria-labelledby="tab-codex"
+            tabindex="0"
+            class="client-panel"
+            hidden
+          >
+            <div class="client-info">
+              <span class="panel-kicker mono">VIA CC SWITCH ROUTING</span>
+              <h3 data-i18n="codexTitle">为 Codex CLI 接好协议转换。</h3>
+              <p data-i18n="codexDesc">
+                在 CC Switch 添加 Codex 供应商，将上游格式设为 OpenAI Chat
+                Completions，再开启 Routing 并启用 Codex 路由。
+              </p>
+              <a
+                class="text-link"
+                href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge/blob/main/docs/CLIENTS.md"
+                ><span data-i18n="fullGuide">完整接入指南</span> ↗</a
+              >
+            </div>
+            <div class="codex-guide">
+              <div class="protocol-flow">
+                <span>Codex CLI<small>Responses</small></span
+                ><i aria-hidden="true">→</i
+                ><span
+                  >CC Switch<small data-i18n="routing">本机路由</small></span
+                ><i aria-hidden="true">→</i
+                ><span>Bridge<small>Chat Completions</small></span>
+              </div>
+              <code>http://127.0.0.1:8317/v1</code>
+              <p data-i18n="codexNote">
+                Bridge 不直接实现 Responses API。Codex CLI 接入依赖 CC Switch
+                的路由转换，工具调用也受网页模型输出与串行处理限制。
+              </p>
+            </div>
+          </div>
+          <div
+            id="panel-curl"
+            role="tabpanel"
+            aria-labelledby="tab-curl"
+            tabindex="0"
+            class="client-panel curl-panel"
+            hidden
+          >
+            <div class="client-info">
+              <span class="panel-kicker mono">BUILD A SAMPLE REQUEST</span>
+              <h3 data-i18n="curlTitle">一份请求，看懂兼容接口。</h3>
+              <p data-i18n="curlDesc">
+                切换选项生成示例。本页不执行请求；请在运行 Bridge
+                的电脑上使用真实本地 API Key。
+              </p>
+              <div
+                class="request-options"
+                role="group"
+                aria-label="请求选项"
+                data-label="requestOptions"
+              >
+                <button
+                  data-option="stream"
+                  aria-pressed="true"
+                  data-i18n="optionStream"
+                >
+                  流式输出</button
+                ><button
+                  data-option="thinking"
+                  aria-pressed="false"
+                  data-i18n="optionThinking"
+                >
+                  深度思考</button
+                ><button
+                  data-option="web_search"
+                  aria-pressed="false"
+                  data-i18n="optionSearch"
+                >
+                  联网搜索
+                </button>
+              </div>
+              <p class="shell-note" data-i18n="shellNote">
+                示例使用 Bash 语法；Windows 可在 Git Bash 或 WSL 中运行。
+              </p>
+            </div>
+            <div class="code-window">
+              <div class="code-window-bar">
+                <span class="mono">BASH / REQUEST EXAMPLE</span
+                ><button
+                  id="copy-request"
+                  class="copy-button"
+                  data-i18n="copyRequest"
+                >
+                  复制请求
+                </button>
+              </div>
+              <pre
+                tabindex="0"
+              ><code id="request-code">curl http://127.0.0.1:8317/v1/chat/completions</code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section id="download" class="download-section section">
+        <div class="container">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow mono">
+                <span class="accent">04 /</span> RUN IT YOUR WAY
+              </p>
+              <h2 data-i18n="downloadTitle">选好平台，让连接发生。</h2>
+            </div>
+            <a
+              href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge/releases/tag/v0.1.1"
+              class="release-badge mono"
+              >RELEASE v0.1.1 ↗</a
+            >
+          </div>
+          <div class="download-grid">
+            <article class="download-card">
+              <span class="platform-icon" aria-hidden="true">⊞</span>
+              <h3>Windows</h3>
+              <p data-i18n="windowsSupport">Windows 10 / 11</p>
+              <div class="architecture-links">
+                <a
+                  href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge/releases/download/v0.1.1/DeepSeekBridge-win64-0.1.1.zip"
+                  ><span>x64</span> ↓</a
+                ><a
+                  href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge/releases/download/v0.1.1/DeepSeekBridge-win-arm64-0.1.1.zip"
+                  ><span>ARM64</span> ↓</a
+                >
+              </div>
+              <span class="platform-note" data-i18n="windowsNote"
+                >解压后运行 DeepSeekBridge.exe</span
+              >
+            </article>
+            <article class="download-card">
+              <span class="platform-icon" aria-hidden="true">⌘</span>
+              <h3>macOS</h3>
+              <p data-i18n="macSupport">macOS 12+ · Intel / Apple Silicon</p>
+              <div class="architecture-links">
+                <a
+                  href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge/releases/download/v0.1.1/DeepSeekBridge-macos-x64-0.1.1.zip"
+                  ><span>Intel x64</span> ↓</a
+                ><a
+                  href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge/releases/download/v0.1.1/DeepSeekBridge-macos-arm64-0.1.1.zip"
+                  ><span>Apple Silicon</span> ↓</a
+                >
+              </div>
+              <span class="platform-note" data-i18n="macNote"
+                >选择与你的处理器匹配的版本</span
+              >
+            </article>
+            <article class="download-card">
+              <span class="platform-icon linux-icon" aria-hidden="true"
+                >&gt;_</span
+              >
+              <h3>Linux</h3>
+              <p data-i18n="linuxSupport">常见 Linux 发行版</p>
+              <div class="architecture-links">
+                <a
+                  href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge/releases/download/v0.1.1/DeepSeekBridge-linux-x64-0.1.1.zip"
+                  ><span>x64</span> ↓</a
+                ><a
+                  href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge/releases/download/v0.1.1/DeepSeekBridge-linux-arm64-0.1.1.zip"
+                  ><span>ARM64</span> ↓</a
+                >
+              </div>
+              <span class="platform-note" data-i18n="linuxNote"
+                >需有可用的桌面浏览器环境</span
+              >
+            </article>
+          </div>
+          <div class="download-foot">
+            <p data-i18n="portableNote">
+              便携包自带 Python 运行时；仍需 Edge、Chrome 或可用的
+              Chromium。跨平台打包与 CI 验证不等同于真实账号端到端实测。
+            </p>
+            <a
+              class="text-link"
+              href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge/releases/latest"
+              ><span data-i18n="allReleases">查看最新发行版</span> ↗</a
+            ><a
+              class="text-link"
+              href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge/releases/download/v0.1.1/SHA256SUMS.txt"
+              >SHA256SUMS.txt ↗</a
+            >
+          </div>
+          <div class="source-start">
+            <div>
+              <span class="mono source-label" data-i18n="sourceLabel"
+                >也可从源码开始</span
+              >
+              <p data-i18n="sourceNote">
+                需要 Python 3.10+ 与 Edge / Chrome，首次启动自动安装依赖。
+              </p>
+            </div>
+            <div>
+              <div
+                class="source-tabs"
+                role="tablist"
+                aria-label="源码启动系统"
+                data-label="sourceTabs"
+              >
+                <button
+                  id="source-windows"
+                  role="tab"
+                  aria-selected="true"
+                  aria-controls="source-panel"
+                  tabindex="0"
+                  data-os="windows"
+                >
+                  Windows</button
+                ><button
+                  id="source-unix"
+                  role="tab"
+                  aria-selected="false"
+                  aria-controls="source-panel"
+                  tabindex="-1"
+                  data-os="unix"
+                >
+                  macOS / Linux
+                </button>
+              </div>
+              <div class="source-code-wrap">
+                <button
+                  id="copy-source"
+                  class="copy-button"
+                  data-i18n="copyCommands"
+                >
+                  复制命令
+                </button>
+                <pre
+                  id="source-panel"
+                  role="tabpanel"
+                  aria-labelledby="source-windows"
+                  tabindex="0"
+                ><code id="source-code">git clone https://github.com/Jimmy-xuzimo/deepseek-local-bridge.git
 cd deepseek-local-bridge
-start.bat</pre>
+.\start.bat</code></pre>
+              </div>
+            </div>
           </div>
-          <div class="code-block small">
-            <div class="code-head"><span>macOS / Linux</span><button class="copy-btn" data-copy-target="code-unix" aria-label="copy"><svg class="ic"><use href="#i-copy"/></svg></button></div>
-            <pre id="code-unix">git clone https://github.com/Jimmy-xuzimo/deepseek-local-bridge
-cd deepseek-local-bridge
-./start.sh</pre>
+          <div class="onboarding">
+            <article>
+              <span class="mono accent">01</span>
+              <h3 data-i18n="step1Title">启动 Bridge</h3>
+              <p data-i18n="step1Desc">
+                运行便携包或启动脚本，打开本机设置页。
+              </p>
+            </article>
+            <article>
+              <span class="mono accent">02</span>
+              <h3 data-i18n="step2Title">登录网页版</h3>
+              <p data-i18n="step2Desc">
+                在专用浏览器窗口登录 DeepSeek，并保持窗口运行。
+              </p>
+            </article>
+            <article>
+              <span class="mono accent">03</span>
+              <h3 data-i18n="step3Title">连接客户端</h3>
+              <p data-i18n="step3Desc">
+                复制本地 API Key，填写地址与 deepseek-web 模型名。
+              </p>
+            </article>
           </div>
         </div>
-        <div class="qs-col">
-          <h3 data-i18n="faq.title">常见疑问</h3>
-          <details class="faq reveal" open>
-            <summary data-i18n="faq.q1">需要官方 API Key 吗？</summary>
-            <p data-i18n="faq.a1">不需要。它使用你已登录的 DeepSeek 网页版账号，因此也不受官方 API 计费影响。</p>
+      </section>
+      <section class="section container faq-section">
+        <div>
+          <p class="eyebrow mono">
+            <span class="accent">05 /</span> KNOW THE BOUNDARIES
+          </p>
+          <h2 data-i18n="faqTitle">开始之前，了解边界。</h2>
+          <p class="faq-intro" data-i18n="faqIntro">
+            非官方项目，仅限个人学习使用。网页改版、账号风控和服务条款都可能影响可用性；请勿商用或大规模并发。
+          </p>
+          <a
+            class="text-link"
+            href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge/blob/main/docs/TROUBLESHOOTING.md"
+            ><span data-i18n="troubleshooting">常见问题与排查</span> ↗</a
+          >
+        </div>
+        <div class="faq-list">
+          <details>
+            <summary data-i18n="faq1q">需要 DeepSeek 官方 API Key 吗？</summary>
+            <p data-i18n="faq1a">
+              此项目使用已登录的 DeepSeek 网页账号，不使用官方 API
+              Key。客户端需要填写的是 Bridge 在本机生成的 API Key。它不是官方
+              API 的替代服务承诺，可用性与使用限制仍受网页服务影响。
+            </p>
           </details>
-          <details class="faq reveal">
-            <summary data-i18n="faq.q2">数据会上传到别处吗？</summary>
-            <p data-i18n="faq.a2">服务只监听本机，登录配置、附件、日志、会话映射都存在你的数据目录里；日志只记录长度与耗时，不记录对话内容和凭证。</p>
+          <details>
+            <summary data-i18n="faq2q">“本地”意味着对话不会联网吗？</summary>
+            <p data-i18n="faq2a">
+              不是。桥接程序、浏览器配置与会话映射在本机运行和保存，但消息与附件会发往
+              DeepSeek
+              网页服务处理。它不是离线推理，也不保证所有数据都不离开设备。
+            </p>
           </details>
-          <details class="faq reveal">
-            <summary data-i18n="faq.q3">网页改版了怎么办？</summary>
-            <p data-i18n="faq.a3">设置页可以一键保存诊断信息（页面结构与选择器命中情况），在数据目录放一个 selectors.json 就能覆盖失效的选择器，不用改代码。</p>
+          <details>
+            <summary data-i18n="faq3q">
+              能让手机或局域网里的设备使用吗？
+            </summary>
+            <p data-i18n="faq3a">
+              可以通过设置页提供的局域网地址和相同 API Key
+              接入。当前配置默认开启局域网服务与
+              CORS；端口及局域网开关变更需重启。管理页仅允许本机访问。请勿将端口映射到公网，也不要关闭
+              API Key 校验。
+            </p>
           </details>
-          <details class="faq reveal">
-            <summary data-i18n="faq.q4">会有账号风险吗？</summary>
-            <p data-i18n="faq.a4">这是非官方方式，可能受网页改版与账号风控影响，请仅个人学习使用、遵守服务条款，避免高频或商用请求。</p>
+          <details>
+            <summary data-i18n="faq4q">工具调用与流式有什么限制？</summary>
+            <p data-i18n="faq4a">
+              工具调用通过提示词协议桥接，需要等待完整回答后再解析；格式无效时回退为普通文本。一个账号串行处理请求，多步任务会排队。Codex
+              CLI 使用 Responses 协议，需要经 CC Switch 路由转换。
+            </p>
           </details>
-          <details class="faq reveal">
-            <summary data-i18n="faq.q5">Windows 提示“不信任的应用”怎么办？</summary>
-            <p data-i18n="faq.a5">便携包没有代码签名，首次运行会被 SmartScreen 拦一下：右键 zip → 属性 → 勾选“解除锁定”再解压，或点“更多信息 → 仍要运行”即可；也可对照 Release 里的 SHA256SUMS.txt 校验文件。</p>
+          <details>
+            <summary data-i18n="faq5q">Windows 提示未知发布者怎么办？</summary>
+            <p data-i18n="faq5a">
+              当前 Windows 便携包未做代码签名，可能出现 SmartScreen
+              信誉提示。先确认下载来源，并对照 Release 中的 SHA256SUMS.txt
+              检查文件。签名状态、信誉提示与恶意软件检测是不同事项，处理方式详见仓库文档。
+            </p>
           </details>
+          <details>
+            <summary data-i18n="faq6q">网页改版或登录过期了怎么办？</summary>
+            <p data-i18n="faq6a">
+              先在本机设置页检查登录状态并重新登录。遇到网页结构变化，可保存诊断信息，根据文档使用
+              selectors.json 覆盖选择器，并通过 Issues 提供经过脱敏的问题说明。
+            </p>
+          </details>
+        </div>
+      </section>
+      <section class="closing container">
+        <div class="closing-lines" aria-hidden="true"></div>
+        <p class="eyebrow mono">LOCAL BRIDGE. CONNECTED WORKFLOW.</p>
+        <h2 data-i18n="closingTitle">让工具之间，少一道距离。</h2>
+        <p data-i18n="closingDesc">从下载、登录，到你的下一次本地 API 调用。</p>
+        <div>
+          <a class="button primary" href="#download"
+            ><span data-i18n="getBridge">获取 Bridge</span> ↓</a
+          ><a
+            class="text-link"
+            href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge/issues"
+            ><span data-i18n="feedback">反馈与建议</span> ↗</a
+          >
+        </div>
+      </section>
+    </main>
+    <footer class="container footer">
+      <div class="footer-top">
+        <a class="brand" href="#top"
+          ><span>DeepSeek<span class="brand-sub">Local Bridge</span></span></a
+        >
+        <p data-i18n="footerNote">非官方项目，与 DeepSeek 无隶属或背书关系。</p>
+        <div>
+          <a href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge"
+            >GitHub ↗</a
+          ><a
+            href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge#readme"
+            data-i18n="documentation"
+            >项目文档</a
+          ><a
+            href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge/blob/main/LICENSE"
+            >MIT License</a
+          >
         </div>
       </div>
-    </div>
-  </section>
-</main>
-
-<footer class="footer">
-  <div class="wrap footer-inner">
-    <div>
-      <strong>DeepSeek Local Bridge</strong>
-      <p class="muted" data-i18n="footer.note">非官方项目 · 仅供个人学习使用 · 请遵守 DeepSeek 服务条款</p>
-    </div>
-    <div class="footer-links">
-      <a href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge" target="_blank" rel="noopener"><svg class="ic"><use href="#i-github"/></svg>GitHub</a>
-      <a href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge/releases/latest" target="_blank" rel="noopener" data-i18n="footer.dl">下载</a>
-      <a href="https://github.com/Jimmy-xuzimo/deepseek-local-bridge/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
-    </div>
-  </div>
-</footer>
-
-<script src="assets/site.js"></script>
-</body>
+      <div class="footer-bottom">
+        <span>© 2026 DeepSeek Local Bridge contributors</span
+        ><span class="mono">BUILT TO CONNECT.</span>
+      </div>
+    </footer>
+    <div
+      id="announcement"
+      class="sr-only"
+      role="status"
+      aria-live="polite"
+    ></div>
+  </body>
 </html>

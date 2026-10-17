@@ -6,6 +6,8 @@
 
 🌐 **项目介绍页（中英双语 / 深浅色主题）**：https://jimmy-xuzimo.github.io/deepseek-local-bridge/
 
+介绍页源码位于 `docs/`，维护与发布说明见 [docs/WEBSITE.md](docs/WEBSITE.md)。
+
 ## 功能
 
 - `/v1/models`、`/v1/chat/completions`（支持 `stream` 流式输出），模型统一为 `deepseek-web`
